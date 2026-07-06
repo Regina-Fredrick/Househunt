@@ -1,7 +1,9 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.core.paginator import Paginator
 from .forms import ListingForm, ListingImageFormSet
+from .models import Listing
 
 
 @login_required
@@ -29,7 +31,7 @@ def create_listing_view(request):
                     image.save()
 
                 messages.success(request, 'Listing submitted for review.')
-                return redirect('profile')
+                return redirect('my_listings')
     else:
         form = ListingForm()
         formset = ListingImageFormSet()
@@ -38,3 +40,48 @@ def create_listing_view(request):
         'form': form,
         'formset': formset,
     })
+
+
+@login_required
+def my_listings_view(request):
+    listings = Listing.objects.filter(owner=request.user).order_by('-created_at')
+    paginator = Paginator(listings, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'listings/my_listings.html', {'page_obj': page_obj})
+
+
+@login_required
+def edit_listing_view(request, pk):
+    listing = get_object_or_404(Listing, pk=pk, owner=request.user)
+
+    if request.method == 'POST':
+        form = ListingForm(request.POST, instance=listing)
+        formset = ListingImageFormSet(request.POST, request.FILES, instance=listing)
+
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            messages.success(request, 'Listing updated.')
+            return redirect('my_listings')
+    else:
+        form = ListingForm(instance=listing)
+        formset = ListingImageFormSet(instance=listing)
+
+    return render(request, 'listings/edit_listing.html', {
+        'form': form,
+        'formset': formset,
+        'listing': listing,
+    })
+
+
+@login_required
+def delete_listing_view(request, pk):
+    listing = get_object_or_404(Listing, pk=pk, owner=request.user)
+
+    if request.method == 'POST':
+        listing.delete()
+        messages.success(request, 'Listing deleted.')
+        return redirect('my_listings')
+
+    return render(request, 'listings/delete_confirm.html', {'listing': listing})
