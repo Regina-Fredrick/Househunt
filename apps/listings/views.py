@@ -10,6 +10,19 @@ from .models import Listing
 
 @login_required
 def create_listing_view(request):
+    # Rate limit: max 5 pending listings per user
+    pending_count = Listing.objects.filter(
+        owner=request.user,
+        status='pending'
+    ).count()
+
+    if pending_count >= 5:
+        messages.error(
+            request,
+            'You already have 5 listings under review. Please wait for them to be approved or rejected before submitting more.'
+        )
+        return redirect('my_listings')
+
     if request.method == 'POST':
         form = ListingForm(request.POST)
         formset = ListingImageFormSet(request.POST, request.FILES)
@@ -42,8 +55,6 @@ def create_listing_view(request):
         'form': form,
         'formset': formset,
     })
-
-
 @login_required
 def my_listings_view(request):
     listings = Listing.objects.filter(owner=request.user).order_by('-created_at')
