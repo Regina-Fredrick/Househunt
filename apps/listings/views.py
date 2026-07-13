@@ -2,9 +2,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
+from django.db.models import F
 from .forms import ListingForm, ListingImageFormSet
 from .filters import ListingFilter
 from .models import Listing
+
 
 @login_required
 def create_listing_view(request):
@@ -41,6 +43,7 @@ def create_listing_view(request):
         'formset': formset,
     })
 
+
 @login_required
 def my_listings_view(request):
     listings = Listing.objects.filter(owner=request.user).order_by('-created_at')
@@ -48,6 +51,7 @@ def my_listings_view(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'listings/my_listings.html', {'page_obj': page_obj})
+
 
 @login_required
 def edit_listing_view(request, pk):
@@ -72,6 +76,7 @@ def edit_listing_view(request, pk):
         'listing': listing,
     })
 
+
 @login_required
 def delete_listing_view(request, pk):
     listing = get_object_or_404(Listing, pk=pk, owner=request.user)
@@ -82,6 +87,7 @@ def delete_listing_view(request, pk):
         return redirect('my_listings')
 
     return render(request, 'listings/delete_confirm.html', {'listing': listing})
+
 
 def browse_listings_view(request):
     queryset = Listing.objects.filter(status='approved').order_by('-created_at')
@@ -95,3 +101,12 @@ def browse_listings_view(request):
         'page_obj': page_obj,
         'filter': listing_filter,
     })
+
+
+def listing_detail_view(request, pk):
+    listing = get_object_or_404(Listing, pk=pk, status='approved')
+
+    Listing.objects.filter(pk=pk).update(views_count=F('views_count') + 1)
+    listing.refresh_from_db()
+
+    return render(request, 'listings/detail.html', {'listing': listing})

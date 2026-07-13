@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load listing_extras %}
+{% block content %}
+
+<h2>{{ listing.title }}</h2>
+<p class="text-muted">{{ listing.neighborhood }} &middot; Posted {{ listing.created_at|date:"M d, Y" }} &middot; {{ listing.views_count }} views</p>
+
+{% if listing.images.all %}
+<div id="listingCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+    <div class="carousel-inner">
+        {% for image in listing.images.all %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+            <img src="{{ image.image.url }}" class="d-block w-100" style="max-height: 500px; object-fit: cover;" alt="{{ listing.title }}">
+        </div>
+        {% endfor %}
+    </div>
+    {% if listing.images.all|length > 1 %}
+    <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon"></span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon"></span>
+    </button>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <h4>KES {{ listing.price }}{% if listing.listing_type == 'rent' %} / month{% endif %}</h4>
+        <p>{{ listing.bedrooms }} bedrooms &middot; {{ listing.bathrooms }} bathrooms &middot; {{ listing.get_property_type_display }} &middot; For {{ listing.get_listing_type_display }}</p>
+        <hr>
+        <h5>Description</h5>
+        <p>{{ listing.description|linebreaks }}</p>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Contact {{ listing.owner.username }}</h5>
+                {% if listing.owner.phone_number %}
+                <a href="https://wa.me/{{ listing.owner.phone_number|whatsapp_format }}?text=Hi, I'm interested in your listing: {{ listing.title }}"
+                   class="btn btn-success w-100 mb-2" target="_blank">
+                    Contact via WhatsApp
+                </a>
+                <a href="tel:{{ listing.owner.phone_number }}" class="btn btn-outline-primary w-100">
+                    Call {{ listing.owner.phone_number }}
+                </a>
+                {% else %}
+                <p class="text-muted">No contact number provided.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

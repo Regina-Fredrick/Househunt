@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container py-4">
+
+    <a href="{% url 'browse_listings' %}" class="btn btn-outline-secondary mb-3">← Back to Listings</a>
+
+    <div class="row">
+        <div class="col-md-7">
+            {% with images=listing.images.all %}
+            {% if images %}
+            <div id="listingCarousel" class="carousel slide mb-3" data-bs-ride="carousel">
+                <div class="carousel-indicators">
+                    {% for image in images %}
+                    <button type="button" data-bs-target="#listingCarousel" data-bs-slide-to="{{ forloop.counter0 }}" {% if forloop.first %}class="active"{% endif %}></button>
+                    {% endfor %}
+                </div>
+                <div class="carousel-inner rounded">
+                    {% for image in images %}
+                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                        <img src="{{ image.image.url }}" class="d-block w-100" style="height:400px;object-fit:cover;cursor:pointer;" alt="Image {{ forloop.counter }}" data-bs-toggle="modal" data-bs-target="#lightboxModal" data-bs-img="{{ image.image.url }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if images.count > 1 %}
+                <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+                <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+                {% endif %}
+            </div>
+            <div class="d-flex gap-2 flex-wrap mb-3">
+                {% for image in images %}
+                <img src="{{ image.image.url }}" style="width:70px;height:70px;object-fit:cover;cursor:pointer;border-radius:4px;" class="thumbnail-img" data-index="{{ forloop.counter0 }}" alt="Thumb {{ forloop.counter }}">
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="col-md-5">
+            <h2 class="fw-bold">{{ listing.title }}</h2>
+            <h4 class="text-primary mb-1">KES {{ listing.price|floatformat:0 }} {% if listing.listing_type == 'rent' %}<small class="text-muted fs-6">/month</small>{% endif %}</h4>
+            <span class="badge bg-secondary mb-3">{{ listing.get_listing_type_display }}</span>
+            <span class="badge bg-info text-dark mb-3">{{ listing.get_property_type_display }}</span>
+            <ul class="list-group list-group-flush mb-3">
+                <li class="list-group-item"><strong>Location:</strong> {{ listing.neighborhood }}</li>
+                {% if listing.bedrooms %}<li class="list-group-item"><strong>Bedrooms:</strong> {{ listing.bedrooms }}</li>{% endif %}
+                {% if listing.bathrooms %}<li class="list-group-item"><strong>Bathrooms:</strong> {{ listing.bathrooms }}</li>{% endif %}
+                <li class="list-group-item"><strong>Listed:</strong> {{ listing.created_at|date:'d M Y' }}</li>
+                <li class="list-group-item"><strong>Views:</strong> {{ listing.views_count }}</li>
+            </ul>
+            <div class="d-grid gap-2">
+                <a href="https://wa.me/{{ listing.owner.phone_number|cut:'+' }}?text=Hi%2C%20I%27m%20interested%20in%20your%20listing%3A%20{{ listing.title|urlencode }}%20on%20HouseHunt." class="btn btn-success btn-lg" target="_blank">Contact via WhatsApp</a>
+                <a href="tel:{{ listing.owner.phone_number }}" class="btn btn-outline-primary btn-lg">Call Agent</a>
+            </div>
+            <p class="text-muted mt-3 small">Listed by <strong>{{ listing.owner.get_full_name|default:listing.owner.username }}</strong></p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4 class="fw-bold">Description</h4>
+            <p style="white-space:pre-line;">{{ listing.description }}</p>
+        </div>
+    </div>
+
+</div>
+
+<div class="modal fade" id="lightboxModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img id="lightboxImg" src="" class="img-fluid" style="max-height:85vh;object-fit:contain;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('lightboxModal').addEventListener('show.bs.modal', function(e) {
+    document.getElementById('lightboxImg').src = e.relatedTarget.getAttribute('data-bs-img');
+});
+var carousel = bootstrap.Carousel.getOrCreateInstance(document.getElementById('listingCarousel'));
+document.querySelectorAll('.thumbnail-img').forEach(function(thumb) {
+    thumb.addEventListener('click', function() { carousel.to(parseInt(this.dataset.index)); });
+});
+</script>
+
+{% endblock %}
