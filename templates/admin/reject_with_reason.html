@@ -1,0 +1,19 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Reject listings with a reason</h1>
+
+<p>You are about to reject the following listing(s):</p>
+<ul>
+    {% for listing in listings %}
+    <li>{{ listing.title }} (owner: {{ listing.owner.username }})</li>
+    {% endfor %}
+</ul>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="hidden" name="action" value="reject_listings">
+    <input type="submit" name="apply" value="Reject with this reason" class="default">
+    <a href="{% url 'admin:listings_listing_changelist' %}" class="button cancel-link">Cancel</a>
+</form>
+{% endblock %}

@@ -39,6 +39,7 @@ class Listing(models.Model):
     listing_type = models.CharField(max_length=10, choices=LISTING_TYPE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
     views_count = models.PositiveIntegerField(default=0)
+    rejection_reason = models.TextField(blank=True)
 
     def __str__(self):
         return self.title
