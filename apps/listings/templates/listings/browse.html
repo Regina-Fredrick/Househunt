@@ -18,7 +18,7 @@
         <div class="card h-100">
             {% with listing.images.first as first_image %}
             {% if first_image %}
-            <img src="{{ first_image.image.url }}" class="card-img-top" alt="{{ listing.title }}">
+            <img src="{{ first_image.thumbnail.url }}" class="card-img-top" alt="{{ listing.title }}" loading="lazy">
             {% endif %}
             {% endwith %}
             <div class="card-body">
@@ -49,3 +49,4 @@
 </nav>
 {% endif %}
 {% endblock %}
+

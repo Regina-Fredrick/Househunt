@@ -57,7 +57,7 @@ def create_listing_view(request):
     })
 @login_required
 def my_listings_view(request):
-    listings = Listing.objects.filter(owner=request.user).order_by('-created_at')
+    listings = Listing.objects.filter(owner=request.user).select_related('neighborhood').prefetch_related('images').order_by('-created_at')
     paginator = Paginator(listings, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -101,7 +101,7 @@ def delete_listing_view(request, pk):
 
 
 def browse_listings_view(request):
-    queryset = Listing.objects.filter(status='approved').order_by('-created_at')
+    queryset = Listing.objects.filter(status='approved').select_related('neighborhood', 'owner').prefetch_related('images').order_by('-created_at')
     listing_filter = ListingFilter(request.GET, queryset=queryset)
 
     paginator = Paginator(listing_filter.qs, 12)
@@ -115,9 +115,10 @@ def browse_listings_view(request):
 
 
 def listing_detail_view(request, pk):
-    listing = get_object_or_404(Listing, pk=pk, status='approved')
+    listing = get_object_or_404(Listing.objects.select_related('neighborhood', 'owner').prefetch_related('images'), pk=pk, status='approved')
 
     Listing.objects.filter(pk=pk).update(views_count=F('views_count') + 1)
     listing.refresh_from_db()
 
     return render(request, 'listings/detail.html', {'listing': listing})
+
