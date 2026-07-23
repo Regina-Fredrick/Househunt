@@ -43,8 +43,8 @@
                    class="btn btn-success w-100 mb-2" target="_blank">
                     Contact via WhatsApp
                 </a>
-                <a href="tel:{{ listing.owner.phone_number }}" class="btn btn-outline-primary w-100">
-                    Call {{ listing.owner.phone_number }}
+                <a href="tel:+{{ listing.owner.phone_number|whatsapp_format }}" class="btn btn-outline-primary w-100">
+                    Call {{ listing.owner.phone_number|whatsapp_format }}
                 </a>
                 {% else %}
                 <p class="text-muted">No contact number provided.</p>
