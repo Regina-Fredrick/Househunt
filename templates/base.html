@@ -9,13 +9,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --ink: #0E1116;
-            --paper: #F6F5F2;
-            --accent: #C9A227;
-            --danger: #C0392B;
-            --gold: #FFC93C;
-            --teal: #2EC4B6;
-            --muted: #6B7280;
+            --ink: #1A1D29;
+            --paper: #F8F9FB;
+            --orange: #F2994A;
+            --blue: #5B8DEF;
+            --purple: #7C5CFC;
+            --teal: #2ED9C3;
+            --muted: #8B92A5;
+            --danger: #E05263;
         }
         body {
             background: var(--paper);
@@ -26,94 +27,114 @@
             font-family: 'Space Grotesk', sans-serif;
         }
         .navbar {
-            background: var(--ink) !important;
+            background: white !important;
+            border-bottom: 1px solid #EDEEF2;
         }
         .navbar-brand {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 700;
             font-size: 1.5rem;
             letter-spacing: -0.02em;
+            color: var(--ink) !important;
+        }
+        .navbar .btn-outline-light {
+            color: var(--ink) !important;
+            border-color: #E3E5EA !important;
+        }
+        .navbar .btn-outline-light:hover {
+            background: var(--ink) !important;
+            color: white !important;
         }
         .btn-primary {
-            background: var(--accent) !important;
-            border-color: var(--accent) !important;
+            background: var(--purple) !important;
+            border-color: var(--purple) !important;
             font-weight: 600;
             border-radius: 8px;
         }
         .btn-primary:hover {
-            background: #A8871F !important;
-            border-color: #A8871F !important;
+            background: #6A4CE0 !important;
+            border-color: #6A4CE0 !important;
         }
         .btn-success {
             background: var(--teal) !important;
             border-color: var(--teal) !important;
             font-weight: 600;
             border-radius: 8px;
+            color: var(--ink) !important;
         }
         .card {
             border: none;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 2px 12px rgba(14,17,22,0.08);
+            box-shadow: 0 2px 12px rgba(26,29,41,0.06);
             transition: transform 0.15s ease, box-shadow 0.15s ease;
-            border-top: 4px solid var(--accent);
         }
         .card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(14,17,22,0.14);
+            box-shadow: 0 8px 24px rgba(26,29,41,0.10);
         }
         .price-tag {
             display: inline-block;
-            background: var(--gold);
-            color: var(--ink);
+            background: #FFF4E8;
+            color: var(--orange);
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 700;
             padding: 4px 14px;
-            border-radius: 6px;
-            transform: rotate(-2deg);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            border-radius: 8px;
         }
         .badge.bg-warning {
-            background: var(--gold) !important;
-            color: var(--ink) !important;
+            background: #FFF4E8 !important;
+            color: var(--orange) !important;
         }
         .badge.bg-success {
-            background: var(--teal) !important;
+            background: #E6FBF8 !important;
+            color: #1AA89A !important;
         }
         .badge.bg-danger {
-            background: var(--danger) !important;
+            background: #FDECEE !important;
+            color: var(--danger) !important;
         }
         a {
-            color: var(--accent);
+            color: var(--purple);
         }
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            margin-bottom: 12px;
+        }
+        .stat-icon-orange { background: #FFF4E8; color: var(--orange); }
+        .stat-icon-blue { background: #EAF1FE; color: var(--blue); }
+        .stat-icon-purple { background: #F1EDFE; color: var(--purple); }
+        .stat-icon-teal { background: #E6FBF8; color: #1AA89A; }
         input[type=text], input[type=email], input[type=password], input[type=number], input[type=tel], textarea, select {
             display: block;
             width: 100%;
             padding: 10px 14px;
             margin-bottom: 12px;
-            border: 1px solid #D1D5DB;
+            border: 1px solid #E3E5EA;
             border-radius: 8px;
             font-family: 'Inter', sans-serif;
             background: white;
         }
         input:focus, textarea:focus, select:focus {
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(201,162,39,0.15);
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px rgba(124,92,252,0.15);
         }
         label {
-            font-weight: 500;
+            font-weight: 700;
             margin-top: 8px;
             display: block;
         }
-        .card-stat-gold { border-top-color: #C9A227 !important; }
-.card-stat-orange { border-top-color: #F2994A !important; }
-.card-stat-teal { border-top-color: #2EC4B6 !important; }
-.card-stat-purple { border-top-color: #7C5CFC !important; }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark mb-4">
+<nav class="navbar navbar-expand-lg mb-4">
     <div class="container">
         <a class="navbar-brand" href="/">Househunt</a>
         <div>
@@ -138,4 +159,3 @@
 </div>
 </body>
 </html>
-
