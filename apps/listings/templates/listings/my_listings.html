@@ -1,6 +1,33 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>My Listings</h2>
+<h2 class="mb-4">Dashboard</h2>
+
+<div class="row mb-4">
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card p-3 text-center card-stat-gold">
+            <div class="text-muted small">Total Listings</div>
+            <div class="fs-2 fw-bold">{{ stats.total }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card p-3 text-center card-stat-orange">
+            <div class="text-muted small">Pending</div>
+            <div class="fs-2 fw-bold">{{ stats.pending }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card p-3 text-center card-stat-teal">
+            <div class="text-muted small">Approved</div>
+            <div class="fs-2 fw-bold">{{ stats.approved }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card p-3 text-center card-stat-purple">
+            <div class="text-muted small">Total Views</div>
+            <div class="fs-2 fw-bold">{{ stats.total_views }}</div>
+        </div>
+    </div>
+</div>
 
 <table class="table">
     <thead>
@@ -35,6 +62,7 @@
         {% endfor %}
     </tbody>
 </table>
+
 {% if page_obj.has_other_pages %}
 <nav>
     <ul class="pagination">

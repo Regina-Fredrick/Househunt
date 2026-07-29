@@ -10,7 +10,6 @@ from .models import Listing
 
 @login_required
 def create_listing_view(request):
-    # Rate limit: max 5 pending listings per user
     pending_count = Listing.objects.filter(
         owner=request.user,
         status='pending'
@@ -55,13 +54,27 @@ def create_listing_view(request):
         'form': form,
         'formset': formset,
     })
+
+
 @login_required
 def my_listings_view(request):
-    listings = Listing.objects.filter(owner=request.user).select_related('neighborhood').prefetch_related('images').order_by('-created_at')
+    all_listings = Listing.objects.filter(owner=request.user)
+    stats = {
+        'total': all_listings.count(),
+        'pending': all_listings.filter(status='pending').count(),
+        'approved': all_listings.filter(status='approved').count(),
+        'rejected': all_listings.filter(status='rejected').count(),
+        'total_views': sum(l.views_count for l in all_listings),
+    }
+
+    listings = all_listings.select_related('neighborhood').prefetch_related('images').order_by('-created_at')
     paginator = Paginator(listings, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'listings/my_listings.html', {'page_obj': page_obj})
+    return render(request, 'listings/my_listings.html', {
+        'page_obj': page_obj,
+        'stats': stats,
+    })
 
 
 @login_required
