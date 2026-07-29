@@ -1,16 +1,18 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Browse Listings</h2>
+<h2 class="mb-4">Browse Listings</h2>
 
-<form method="get" class="row g-2 mb-4">
-    <div class="col-md-2">{{ filter.form.neighborhood }}</div>
-    <div class="col-md-2">{{ filter.form.property_type }}</div>
-    <div class="col-md-2">{{ filter.form.listing_type }}</div>
-    <div class="col-md-2">{{ filter.form.bedrooms }}</div>
-    <div class="col-md-1">{{ filter.form.min_price }}</div>
-    <div class="col-md-1">{{ filter.form.max_price }}</div>
-    <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Filter</button></div>
+<div class="card p-3 mb-4">
+<form method="get" class="row g-2 align-items-center">
+    <div class="col-6 col-md-2">{{ filter.form.neighborhood }}</div>
+    <div class="col-6 col-md-2">{{ filter.form.property_type }}</div>
+    <div class="col-6 col-md-2">{{ filter.form.listing_type }}</div>
+    <div class="col-6 col-md-2">{{ filter.form.bedrooms }}</div>
+    <div class="col-6 col-md-1">{{ filter.form.min_price }}</div>
+    <div class="col-6 col-md-1">{{ filter.form.max_price }}</div>
+    <div class="col-12 col-md-2"><button type="submit" class="btn btn-primary w-100">Filter</button></div>
 </form>
+</div>
 
 <div class="row">
 {% for listing in page_obj %}
@@ -23,10 +25,10 @@
             {% endwith %}
             <div class="card-body">
                 <h5 class="card-title">{{ listing.title }}</h5>
-                <p class="card-text">KES {{ listing.price }}</p>
-                <p class="card-text">{{ listing.bedrooms }} bed / {{ listing.bathrooms }} bath</p>
-                <p class="card-text">{{ listing.neighborhood }}</p>
-                <a href="{% url 'listing_detail' listing.pk %}" class="btn btn-outline-primary">View Details</a>
+                <p class="card-text"><span class="price-tag">KES {{ listing.price }}</span></p>
+                <p class="card-text text-muted">{{ listing.bedrooms }} bed / {{ listing.bathrooms }} bath</p>
+                <p class="card-text text-muted">{{ listing.neighborhood }}</p>
+                <a href="{% url 'listing_detail' listing.pk %}" class="btn btn-primary">View Details</a>
             </div>
         </div>
     </div>
@@ -49,4 +51,3 @@
 </nav>
 {% endif %}
 {% endblock %}
-

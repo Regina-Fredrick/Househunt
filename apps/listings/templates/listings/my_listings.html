@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2 class="mb-4">Dashboard</h2>
+<h2 class="mb-3">Dashboard</h2>
+<div class="mb-4">
+    <a href="{% url 'browse_listings' %}" class="btn btn-outline-primary btn-sm me-2">Browse Listings</a>
+    <a href="{% url 'create_listing' %}" class="btn btn-primary btn-sm me-2">+ New Listing</a>
+    <a href="{% url 'profile' %}" class="btn btn-outline-primary btn-sm">My Profile</a>
+</div>
 
 <div class="row mb-4">
     <div class="col-6 col-md-3 mb-3">

@@ -139,10 +139,12 @@
         <a class="navbar-brand" href="/">Househunt</a>
         <div>
             {% if user.is_authenticated %}
-                <a class="btn btn-outline-light btn-sm me-2" href="{% url 'create_listing' %}">New Listing</a>
+            <a class="btn btn-outline-light btn-sm me-2" href="{% url 'browse_listings' %}">Browse</a>
+            <a class="btn btn-outline-light btn-sm me-2" href="{% url 'create_listing' %}">New Listing</a>
                 <a class="btn btn-outline-light btn-sm me-2" href="{% url 'my_listings' %}">My Listings</a>
                 <a class="btn btn-outline-light btn-sm me-2" href="{% url 'profile' %}">Profile</a>
-            {% else %}
+                {% else %}
+                <a class="btn btn-outline-light btn-sm me-2" href="{% url 'browse_listings' %}">Browse</a>
                 <a class="btn btn-outline-light btn-sm me-2" href="{% url 'login' %}">Login</a>
                 <a class="btn btn-outline-light btn-sm" href="{% url 'register' %}">Register</a>
             {% endif %}
