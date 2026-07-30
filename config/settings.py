@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG') == 'True'
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.lhr.life', '.trycloudflare.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -100,3 +100,20 @@ INTERNAL_IPS = ['127.0.0.1']
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# --- M-Pesa Daraja settings ---
+# Add these near your other os.environ.get(...) / env(...) lines,
+# using whatever pattern your settings.py already uses to read .env
+# (python-dotenv is already in your requirements, so this assumes
+# something like `from dotenv import load_dotenv; load_dotenv()` is
+# already called near the top of settings.py).
+
+MPESA_CONSUMER_KEY = os.environ.get('MPESA_CONSUMER_KEY')
+MPESA_CONSUMER_SECRET = os.environ.get('MPESA_CONSUMER_SECRET')
+MPESA_SHORTCODE = os.environ.get('MPESA_SHORTCODE', '174379')
+MPESA_PASSKEY = os.environ.get('MPESA_PASSKEY')
+MPESA_ENV = os.environ.get('MPESA_ENV', 'sandbox')  # 'sandbox' or 'production'
+MPESA_CALLBACK_BASE_URL = os.environ.get('MPESA_CALLBACK_BASE_URL', '')
+# 'CustomerPayBillOnline' for sandbox testing; switch to
+# 'CustomerBuyGoodsOnline' only once on production credentials for your
+# actual Till number (see the warning in apps/listings/mpesa.py).
+MPESA_TRANSACTION_TYPE = os.environ.get('MPESA_TRANSACTION_TYPE', 'CustomerPayBillOnline')

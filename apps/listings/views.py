@@ -1,12 +1,21 @@
+import json
+import logging
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
 from django.db.models import F
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from .forms import ListingForm, ListingImageFormSet
 from .filters import ListingFilter
-from .models import Listing
+from .models import Listing, ListingReport, UnlockLedger
+from . import mpesa
 
+logger = logging.getLogger(__name__)
 
 @login_required
 def create_listing_view(request):
@@ -133,5 +142,174 @@ def listing_detail_view(request, pk):
     Listing.objects.filter(pk=pk).update(views_count=F('views_count') + 1)
     listing.refresh_from_db()
 
-    return render(request, 'listings/detail.html', {'listing': listing})
+    is_unlocked = False
+    pending_unlock = False
+    if request.user.is_authenticated:
+        is_unlocked = UnlockLedger.objects.filter(
+            user=request.user, listing=listing, status='completed'
+        ).exists()
+        if not is_unlocked:
+            pending_unlock = UnlockLedger.objects.filter(
+                user=request.user, listing=listing, status='pending'
+            ).exists()
 
+    return render(request, 'listings/detail.html', {
+        'listing': listing,
+        'is_unlocked': is_unlocked,
+        'pending_unlock': pending_unlock,
+        'unlock_price': 500,
+    })
+
+
+UNLOCK_PRICE = 500
+
+
+@login_required
+@require_POST
+def unlock_listing_view(request, pk):
+    """
+    Triggers a real M-Pesa STK Push. Does NOT create a completed unlock here
+    — that only happens once mpesa_callback_view receives and verifies the
+    payment result. This view just:
+      1. Creates/reuses a 'pending' UnlockLedger row for (user, listing)
+      2. Calls Daraja to push the payment prompt to the user's phone
+      3. Redirects back to the detail page, where JS polls unlock_status_view
+    """
+    listing = get_object_or_404(Listing, pk=pk, status='approved')
+
+    already_unlocked = UnlockLedger.objects.filter(
+        user=request.user, listing=listing, status='completed'
+    ).exists()
+    if already_unlocked:
+        messages.info(request, 'You already unlocked this listing.')
+        return redirect('listing_detail', pk=pk)
+
+    phone_number = (request.user.phone_number or '').strip()
+    # Normalize common Kenyan formats (0712345678, +254712345678) to
+    # Daraja's required 2547XXXXXXXX with no leading 0 or +.
+    if phone_number.startswith('0'):
+        phone_number = '254' + phone_number[1:]
+    elif phone_number.startswith('+'):
+        phone_number = phone_number[1:]
+
+    if not phone_number.startswith('254') or len(phone_number) != 12:
+        messages.error(
+            request,
+            'Please add a valid M-Pesa phone number (e.g. 0712345678) to your profile before unlocking.'
+        )
+        return redirect('listing_detail', pk=pk)
+
+    ledger, _ = UnlockLedger.objects.update_or_create(
+        user=request.user,
+        listing=listing,
+        defaults={
+            'amount_paid': UNLOCK_PRICE,
+            'status': 'pending',
+            'failure_reason': '',
+        },
+    )
+
+    callback_url = f"{settings.MPESA_CALLBACK_BASE_URL}/listings/mpesa/callback/"
+
+    try:
+        response = mpesa.stk_push(
+            phone_number=phone_number,
+            amount=UNLOCK_PRICE,
+            account_reference=str(listing.pk),
+            transaction_desc=f"Unlock listing {listing.pk}",
+            callback_url=callback_url,
+        )
+        ledger.checkout_request_id = response.get('CheckoutRequestID', '')
+        ledger.save(update_fields=['checkout_request_id'])
+        messages.success(request, 'Check your phone to complete the M-Pesa payment.')
+    except mpesa.MpesaError as exc:
+        logger.error("STK Push failed for listing %s, user %s: %s", listing.pk, request.user.pk, exc)
+        ledger.status = 'failed'
+        ledger.failure_reason = str(exc)[:255]
+        ledger.save(update_fields=['status', 'failure_reason'])
+        messages.error(request, 'Could not start the M-Pesa payment. Please try again.')
+
+    return redirect('listing_detail', pk=pk)
+
+
+@login_required
+def unlock_status_view(request, pk):
+    """
+    Polled by JS on the detail page after an unlock attempt, since the
+    actual payment confirmation arrives asynchronously via the M-Pesa
+    callback, not in the same request that triggered the STK Push.
+    """
+    ledger = UnlockLedger.objects.filter(user=request.user, listing_id=pk).first()
+    if not ledger:
+        return JsonResponse({'status': 'none'})
+    return JsonResponse({
+        'status': ledger.status,
+        'failure_reason': ledger.failure_reason,
+    })
+
+
+@csrf_exempt
+@require_POST
+def mpesa_callback_view(request):
+    """
+    Daraja POSTs the STK Push result here, asynchronously, once the user
+    completes (or cancels/ignores) the payment prompt on their phone.
+
+    IMPORTANT: always return HTTP 200 with {"ResultCode": 0, "ResultDesc":
+    "Accepted"} regardless of what we found — Safaricom retries a
+    non-200/unexpected response up to 3 times, then quarantines the app.
+    Any internal error handling below must never let an exception escape
+    without still returning this acknowledgement.
+    """
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+        stk_callback = payload.get('Body', {}).get('stkCallback', {})
+        checkout_request_id = stk_callback.get('CheckoutRequestID', '')
+        result_code = stk_callback.get('ResultCode')
+        result_desc = stk_callback.get('ResultDesc', '')
+
+        ledger = UnlockLedger.objects.filter(checkout_request_id=checkout_request_id).first()
+        if not ledger:
+            logger.warning("M-Pesa callback for unknown CheckoutRequestID: %s", checkout_request_id)
+        else:
+            if result_code == 0:
+                items = stk_callback.get('CallbackMetadata', {}).get('Item', [])
+                metadata = {item.get('Name'): item.get('Value') for item in items}
+                ledger.status = 'completed'
+                ledger.payment_reference = str(metadata.get('MpesaReceiptNumber', ''))
+                if metadata.get('Amount') is not None:
+                    ledger.amount_paid = metadata['Amount']
+                ledger.completed_at = timezone.now()
+                ledger.save(update_fields=['status', 'payment_reference', 'amount_paid', 'completed_at'])
+            else:
+                ledger.status = 'failed'
+                ledger.failure_reason = result_desc[:255]
+                ledger.save(update_fields=['status', 'failure_reason'])
+    except Exception:
+        logger.exception("Error processing M-Pesa callback")
+
+    return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+@login_required
+def report_listing_view(request, pk):
+    listing = get_object_or_404(Listing, pk=pk, status='approved')
+
+    if request.method == 'POST':
+        reason = request.POST.get('reason')
+        if reason in ('unavailable', 'scam'):
+            _, created = ListingReport.objects.get_or_create(
+                listing=listing,
+                reporter=request.user,
+                defaults={'reason': reason},
+            )
+            if created:
+                listing.report_count = listing.reports.count()
+                if listing.report_count >= 3:
+                    listing.status = 'rejected'
+                    listing.rejection_reason = 'Automatically unpublished after multiple user reports.'
+                listing.save()
+                messages.success(request, 'Thank you, your report has been submitted.')
+            else:
+                messages.info(request, 'You already reported this listing.')
+
+    return redirect('listing_detail', pk=pk)

@@ -3,7 +3,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.shortcuts import render
 from django import forms
-from .models import Neighborhood, Listing, ListingImage
+from .models import Neighborhood, Listing, ListingImage, UnlockLedger, UnlockLedger
 
 
 class ListingImageInline(admin.TabularInline):
@@ -86,3 +86,17 @@ class ListingAdmin(admin.ModelAdmin):
 class NeighborhoodAdmin(admin.ModelAdmin):
     list_display = ('name', 'is_active')
     search_fields = ('name',)
+
+
+@admin.register(UnlockLedger)
+class UnlockLedgerAdmin(admin.ModelAdmin):
+    # Phase 1 has no real payment gateway yet, so this is your main window
+    # into who has unlocked what while testing. `payment_reference` and
+    # amounts become meaningful once Phase 2 wires in the M-Pesa callback.
+    list_display = ('user', 'listing', 'amount_paid', 'payment_reference', 'unlocked_at')
+    list_filter = ('unlocked_at',)
+    search_fields = ('user__username', 'listing__title', 'payment_reference')
+    readonly_fields = ('unlocked_at',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'listing')

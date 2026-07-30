@@ -2,6 +2,21 @@
 {% load listing_extras %}
 {% block content %}
 
+<style>
+    .gated-photo { filter: blur(18px); pointer-events: none; }
+    .paywall-box {
+        position: relative;
+        margin-top: -60px;
+        z-index: 10;
+        background: #fff;
+        border: 1px solid #e2e2e2;
+        border-radius: 12px;
+        padding: 1.25rem;
+        text-align: center;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+    }
+</style>
+
 <h2>{{ listing.title }}</h2>
 <p class="text-muted">{{ listing.neighborhood }} &middot; Posted {{ listing.created_at|date:"M d, Y" }} &middot; {{ listing.views_count }} views</p>
 
@@ -10,7 +25,9 @@
     <div class="carousel-inner">
         {% for image in listing.images.all %}
         <div class="carousel-item {% if forloop.first %}active{% endif %}">
-            <img src="{{ image.image.url }}" class="d-block w-100" style="max-height: 500px; object-fit: cover;" alt="{{ listing.title }}" loading="lazy">
+            <img src="{{ image.image.url }}"
+                 class="d-block w-100 {% if not forloop.first and not is_unlocked %}gated-photo{% endif %}"
+                 style="max-height: 500px; object-fit: cover;" alt="{{ listing.title }}" loading="lazy">
         </div>
         {% endfor %}
     </div>
@@ -23,6 +40,53 @@
     </button>
     {% endif %}
 </div>
+
+{% if not is_unlocked and listing.images.all|length > 1 %}
+<div class="paywall-box" id="paywallBox" data-listing-id="{{ listing.pk }}" data-status-url="{% url 'unlock_status' listing.pk %}">
+    {% if pending_unlock %}
+        <p class="mb-2"><strong>Payment pending...</strong></p>
+        <p class="text-muted small mb-0" id="unlockStatusText">Check your phone for the M-Pesa prompt. This page will update automatically once payment completes.</p>
+    {% else %}
+        <p class="mb-2"><strong>Interior photos, exact address &amp; map location are locked.</strong></p>
+        <p class="text-muted small mb-3">Unlock this listing for a one-time fee to see all interior photos, the exact street address, and GPS location.</p>
+        <form method="post" action="{% url 'unlock_listing' listing.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary px-4">Unlock — KES {{ unlock_price }}</button>
+        </form>
+    {% endif %}
+</div>
+<script>
+// Polls unlock_status_view every 3s while a payment is pending, and reloads
+// the page once it flips to 'completed' or 'failed' so the server-rendered
+// blur/paywall state stays the single source of truth (no client-side
+// content swapping of gated data).
+(function () {
+    var box = document.getElementById('paywallBox');
+    if (!box || !{{ pending_unlock|yesno:"true,false" }}) return;
+
+    var statusUrl = box.dataset.statusUrl;
+    var attempts = 0;
+    var maxAttempts = 40; // ~2 minutes at 3s intervals
+
+    var poll = setInterval(function () {
+        attempts += 1;
+        fetch(statusUrl)
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.status === 'completed' || data.status === 'failed') {
+                    clearInterval(poll);
+                    window.location.reload();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(poll);
+                    var el = document.getElementById('unlockStatusText');
+                    if (el) el.textContent = 'Still waiting on payment confirmation. Refresh this page after completing payment on your phone.';
+                }
+            })
+            .catch(function () { clearInterval(poll); });
+    }, 3000);
+})();
+</script>
+{% endif %}
 {% endif %}
 
 <div class="row">
@@ -36,6 +100,20 @@
         <hr>
         <h5>Description</h5>
         <p>{{ listing.description|linebreaks }}</p>
+        <hr>
+        <h5>Location</h5>
+        {% if is_unlocked %}
+            {% if listing.street_address %}
+            <p>{{ listing.street_address }}</p>
+            {% else %}
+            <p class="text-muted">Exact address not provided by the agent yet.</p>
+            {% endif %}
+            {% if listing.latitude and listing.longitude %}
+            <p class="text-muted small">GPS: {{ listing.latitude }}, {{ listing.longitude }}</p>
+            {% endif %}
+        {% else %}
+            <p class="text-muted">{{ listing.neighborhood }} (unlock to see the exact address and map pin)</p>
+        {% endif %}
     </div>
 
     <div class="col-md-4">
@@ -58,4 +136,4 @@
     </div>
 </div>
 
-{% endblock %}
+{% endblock %}s

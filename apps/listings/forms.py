@@ -9,7 +9,20 @@ class ListingForm(forms.ModelForm):
         fields = [
             'title', 'description', 'price', 'property_type',
             'bedrooms', 'bathrooms', 'neighborhood', 'listing_type',
+            'street_address', 'latitude', 'longitude',
         ]
+        widgets = {
+            'street_address': forms.TextInput(attrs={
+                'placeholder': 'e.g. 14 Riverside Drive, off Chiromo Rd',
+            }),
+            'latitude': forms.NumberInput(attrs={'step': 'any', 'placeholder': 'e.g. -1.268813'}),
+            'longitude': forms.NumberInput(attrs={'step': 'any', 'placeholder': 'e.g. 36.803434'}),
+        }
+        help_texts = {
+            'street_address': 'Only shown to buyers after they unlock the listing.',
+            'latitude': 'Optional — powers the map pin once unlocked.',
+            'longitude': 'Optional — powers the map pin once unlocked.',
+        }
 
     def clean_price(self):
         price = self.cleaned_data['price']
