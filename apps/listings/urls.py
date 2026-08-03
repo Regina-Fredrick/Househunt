@@ -19,5 +19,6 @@ urlpatterns = [
     path('<int:pk>/edit/', views.edit_listing_view, name='edit_listing'),
     path('<int:pk>/delete/', views.delete_listing_view, name='delete_listing'),
     path('<int:pk>/unlock/', views.unlock_listing_view, name='unlock_listing'),
+    path('<int:pk>/unlock/status/', views.unlock_status_view, name='unlock_status'),
+    path('mpesa/callback/', views.mpesa_callback_view, name='mpesa_callback'),
 ]
-

@@ -174,4 +174,4 @@ class ListingReport(models.Model):
         unique_together = ('listing', 'reporter')
 
     def __str__(self):
-        return f"{self.reporter.username} reported {self.listing.title} ({self.reason})"s
+        return f"{self.reporter.username} reported {self.listing.title} ({self.reason})"
