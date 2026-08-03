@@ -9,8 +9,11 @@ from django.shortcuts import get_object_or_404
 from django.conf import settings
 import logging
 
-from .models import Listing, Neighborhood, UnlockLedger
-from .serializers import ListingCardSerializer, ListingDetailSerializer, NeighborhoodSerializer, MyListingSerializer
+from .models import Listing, Neighborhood, UnlockLedger, ListingImage
+from .serializers import (
+    ListingCardSerializer, ListingDetailSerializer, NeighborhoodSerializer,
+    MyListingSerializer, ListingCreateSerializer, ListingImageUploadSerializer,
+)
 from .filters import ListingFilter
 from . import mpesa
 
@@ -57,6 +60,38 @@ class MyListingsAPIView(generics.ListAPIView):
         return Listing.objects.filter(owner=self.request.user).select_related(
             'neighborhood'
         ).prefetch_related('images').order_by('-created_at')
+
+
+class CreateListingAPIView(generics.CreateAPIView):
+    serializer_class = ListingCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        pending_count = Listing.objects.filter(owner=request.user, status='pending').count()
+        if pending_count >= 5:
+            return Response(
+                {'detail': 'You already have 5 listings under review. Please wait for them to be approved or rejected before submitting more.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        listing = serializer.save(owner=request.user, status='pending')
+        return Response(MyListingSerializer(listing, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def upload_listing_image_api_view(request, pk):
+    listing = get_object_or_404(Listing, pk=pk, owner=request.user)
+
+    if listing.images.count() >= 5:
+        return Response({'detail': 'Maximum 5 images per listing.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = ListingImageUploadSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save(listing=listing, order=listing.images.count())
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
