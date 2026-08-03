@@ -160,6 +160,40 @@ class UnlockLedger(models.Model):
         return f"{self.user.username} / {self.listing.title} ({self.status})"
 
 
+class LandlordVerification(models.Model):
+    """
+    Enterprise Landlord Hub — KYC verification for landlords/developers who
+    want the enterprise/commercial tier (bulk import, featured placement,
+    etc. — those come in later Phase 3 work; this model is just the
+    verification record they're built on top of).
+
+    One row per user. Resubmitting after a rejection resets status back to
+    'pending' rather than creating a new row, so there's always a single
+    current verification state per user, with rejection_reason preserved
+    as history until the next submission overwrites it.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='landlord_verification')
+    business_name = models.CharField(max_length=200, blank=True)
+    registration_number = models.CharField(
+        max_length=100, blank=True,
+        help_text="KRA PIN or business registration number"
+    )
+    id_document = models.FileField(upload_to='kyc_documents/', blank=True, null=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    rejection_reason = models.TextField(blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} — {self.get_status_display()}"
+
+
 class ListingReport(models.Model):
     REASON_CHOICES = [
         ('unavailable', 'Unavailable'),

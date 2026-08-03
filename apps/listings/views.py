@@ -1,18 +1,21 @@
 import json
 import logging
+from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
-from django.db.models import F
+from django.db.models import F, Sum, Count
+from django.db.models.functions import TruncDate
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from .forms import ListingForm, ListingImageFormSet
+from .forms import ListingForm, ListingImageFormSet, LandlordVerificationForm
 from .filters import ListingFilter
-from .models import Listing, ListingReport, UnlockLedger
+from .models import Listing, ListingReport, UnlockLedger, LandlordVerification
 from . import mpesa
 
 logger = logging.getLogger(__name__)
@@ -313,3 +316,97 @@ def report_listing_view(request, pk):
                 messages.info(request, 'You already reported this listing.')
 
     return redirect('listing_detail', pk=pk)
+
+@staff_member_required
+def revenue_dashboard_view(request):
+    """
+    Financial Controller desk — read-only revenue summary + chart.
+    Staff-only (not a public or even a regular-user page). Refunds/reversals
+    are NOT handled here yet — that needs a separate M-Pesa Reversal API
+    integration, its own credentials, and its own review before wiring in,
+    since it moves real money back out.
+    """
+    completed = UnlockLedger.objects.filter(status='completed')
+
+    total_revenue = completed.aggregate(total=Sum('amount_paid'))['total'] or 0
+    total_unlocks = completed.count()
+
+    now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=today_start.weekday())
+    month_start = today_start.replace(day=1)
+
+    revenue_today = completed.filter(completed_at__gte=today_start).aggregate(total=Sum('amount_paid'))['total'] or 0
+    revenue_week = completed.filter(completed_at__gte=week_start).aggregate(total=Sum('amount_paid'))['total'] or 0
+    revenue_month = completed.filter(completed_at__gte=month_start).aggregate(total=Sum('amount_paid'))['total'] or 0
+
+    # Last 30 days, filled with zeros for days with no unlocks so the chart
+    # doesn't just skip gaps and look misleadingly smooth.
+    thirty_days_ago = today_start - timedelta(days=29)
+    daily_qs = (
+        completed.filter(completed_at__gte=thirty_days_ago)
+        .annotate(day=TruncDate('completed_at'))
+        .values('day')
+        .annotate(revenue=Sum('amount_paid'), count=Count('id'))
+    )
+    daily_map = {row['day']: row for row in daily_qs}
+
+    chart_labels = []
+    chart_data = []
+    for i in range(30):
+        day = (thirty_days_ago + timedelta(days=i)).date()
+        chart_labels.append(day.strftime('%b %d'))
+        chart_data.append(float(daily_map.get(day, {}).get('revenue') or 0))
+
+    top_listings = (
+        completed.values('listing__id', 'listing__title')
+        .annotate(revenue=Sum('amount_paid'), unlocks=Count('id'))
+        .order_by('-revenue')[:10]
+    )
+
+    pending_count = UnlockLedger.objects.filter(status='pending').count()
+    failed_count = UnlockLedger.objects.filter(status='failed').count()
+
+    return render(request, 'listings/revenue_dashboard.html', {
+        'total_revenue': total_revenue,
+        'total_unlocks': total_unlocks,
+        'revenue_today': revenue_today,
+        'revenue_week': revenue_week,
+        'revenue_month': revenue_month,
+        'pending_count': pending_count,
+        'failed_count': failed_count,
+        'chart_labels': json.dumps(chart_labels),
+        'chart_data': json.dumps(chart_data),
+        'top_listings': top_listings,
+    })
+
+
+@login_required
+def submit_kyc_view(request):
+    """
+    Enterprise Landlord Hub — self-service KYC submission. Any logged-in
+    user can submit; nothing downstream (bulk import, featured placement,
+    B2B tier) is gated on status='verified' yet — that gating is future
+    work once those features themselves exist. This view is just the
+    submission + resubmission mechanism.
+    """
+    verification, _ = LandlordVerification.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = LandlordVerificationForm(request.POST, request.FILES, instance=verification)
+        if form.is_valid():
+            verification = form.save(commit=False)
+            # Any edit/resubmission resets status to pending for re-review,
+            # even if it was previously verified or rejected.
+            verification.status = 'pending'
+            verification.reviewed_at = None
+            verification.save()
+            messages.success(request, 'Verification submitted. We\'ll review it shortly.')
+            return redirect('submit_kyc')
+    else:
+        form = LandlordVerificationForm(instance=verification)
+
+    return render(request, 'listings/submit_kyc.html', {
+        'form': form,
+        'verification': verification,
+    })

@@ -21,4 +21,6 @@ urlpatterns = [
     path('<int:pk>/unlock/', views.unlock_listing_view, name='unlock_listing'),
     path('<int:pk>/unlock/status/', views.unlock_status_view, name='unlock_status'),
     path('mpesa/callback/', views.mpesa_callback_view, name='mpesa_callback'),
+    path('admin/revenue-dashboard/', views.revenue_dashboard_view, name='revenue_dashboard'),
+     path('kyc/', views.submit_kyc_view, name='submit_kyc'),
 ]

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>Landlord/Developer Verification</h2>
+<p class="text-muted">Submit your business details for verification. This is used for enterprise features like bulk listing import and featured placement.</p>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <p class="mb-1"><strong>Current status:</strong>
+                    {% if verification.status == 'verified' %}
+                        <span class="badge bg-success">Verified</span>
+                    {% elif verification.status == 'rejected' %}
+                        <span class="badge bg-danger">Rejected</span>
+                    {% else %}
+                        <span class="badge bg-warning">Pending review</span>
+                    {% endif %}
+                </p>
+                {% if verification.status == 'rejected' and verification.rejection_reason %}
+                <p class="text-muted small mb-0">Reason: {{ verification.rejection_reason }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+                {{ form.business_name.label_tag }}
+                {{ form.business_name }}
+            </div>
+            <div class="mb-3">
+                {{ form.registration_number.label_tag }}
+                {{ form.registration_number }}
+                <div class="form-text">{{ form.registration_number.help_text }}</div>
+            </div>
+            <div class="mb-3">
+                {{ form.id_document.label_tag }}
+                {{ form.id_document }}
+                {% if verification.id_document %}
+                <div class="form-text">Currently: {{ verification.id_document.name }}</div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary">Submit for Review</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

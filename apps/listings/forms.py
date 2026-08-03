@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Listing, ListingImage
+from .models import Listing, ListingImage, LandlordVerification
 
 
 class ListingForm(forms.ModelForm):
@@ -39,3 +39,20 @@ ListingImageFormSet = inlineformset_factory(
     max_num=5,
     can_delete=False,
 )
+
+
+class LandlordVerificationForm(forms.ModelForm):
+    class Meta:
+        model = LandlordVerification
+        fields = ['business_name', 'registration_number', 'id_document']
+        widgets = {
+            'business_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. Riverside Properties Ltd',
+            }),
+            'registration_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'KRA PIN or business reg. number',
+            }),
+            'id_document': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
