@@ -24,10 +24,12 @@ export default function DetailPage() {
 
   return (
     <div>
-      <Link to="/" style={{ display: 'inline-block', marginBottom: 16 }}>&larr; Back to listings</Link>
+      <Link to="/" className="nav-link" style={{ display: 'inline-block', marginBottom: 16 }}>
+        &larr; Back to listings
+      </Link>
 
-      <h2 style={{ fontFamily: 'Space Grotesk, sans-serif' }}>{listing.title}</h2>
-      <p style={{ color: '#8B92A5' }}>
+      <h2>{listing.title}</h2>
+      <p className="muted">
         {listing.neighborhood?.name} &middot; {listing.views_count} views
       </p>
 
@@ -39,17 +41,7 @@ export default function DetailPage() {
         />
       )}
 
-      <p style={{
-        display: 'inline-block',
-        background: '#FFF4E8',
-        color: '#F2994A',
-        fontWeight: 700,
-        padding: '6px 16px',
-        borderRadius: 8,
-        fontSize: '1.25rem',
-      }}>
-        KES {listing.price}
-      </p>
+      <p className="price-tag price-tag-lg">KES {listing.price}</p>
 
       <p style={{ marginTop: 16 }}>
         {listing.bedrooms} bedrooms &middot; {listing.bathrooms} bathrooms &middot; {listing.property_type}
@@ -60,15 +52,10 @@ export default function DetailPage() {
       <p>{listing.description}</p>
 
       {!listing.is_unlocked && listing.pending_unlock !== undefined && (
-        <div style={{
-          background: '#F1EDFE',
-          border: '1px solid #7C5CFC',
-          borderRadius: 12,
-          padding: 16,
-          marginTop: 20,
-        }}>
+        <div className="lock-box">
           <strong>This listing is locked.</strong>
           <p style={{ margin: '8px 0 0' }}>Unlock full photos and contact details for KES 500.</p>
+          <button className="btn btn-primary" style={{ marginTop: 12 }}>Unlock for KES 500</button>
         </div>
       )}
 

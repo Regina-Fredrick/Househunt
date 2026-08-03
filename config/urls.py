@@ -10,6 +10,7 @@ urlpatterns = [
     path('accounts/', include('apps.accounts.urls')),
     path('listings/', include('apps.listings.urls')),
     path('api/listings/', include('apps.listings.api_urls')),
+    path('api/auth/', include('apps.accounts.api_urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

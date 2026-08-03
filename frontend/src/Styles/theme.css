@@ -1,0 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --ink: #1A1D29;
+  --paper: #F8F9FB;
+  --orange: #F2994A;
+  --blue: #5B8DEF;
+  --purple: #7C5CFC;
+  --teal: #2ED9C3;
+  --muted: #8B92A5;
+  --danger: #E05263;
+}
+
+body {
+  background: var(--paper);
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+a {
+  color: var(--purple);
+}
+
+.navbar {
+  background: white;
+  border-bottom: 1px solid #EDEEF2;
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.nav-link {
+  margin-right: 16px;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(26,29,41,0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(26,29,41,0.10);
+}
+
+.card-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.card-body {
+  padding: 14px;
+}
+
+.price-tag {
+  display: inline-block;
+  background: #FFF4E8;
+  color: var(--orange);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 8px;
+}
+
+.price-tag-lg {
+  font-size: 1.25rem;
+  padding: 6px 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.lock-box {
+  background: #F1EDFE;
+  border: 1px solid var(--purple);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-primary {
+  background: var(--purple);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #6A4CE0;
+}

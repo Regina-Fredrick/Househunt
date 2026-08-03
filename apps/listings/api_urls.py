@@ -15,6 +15,7 @@ from . import api_views
 
 urlpatterns = [
     path('neighborhoods/', api_views.NeighborhoodListAPIView.as_view(), name='api_neighborhoods'),
+    path('mine/', api_views.MyListingsAPIView.as_view(), name='api_my_listings'),
     path('', api_views.ListingBrowseAPIView.as_view(), name='api_listing_browse'),
     path('<int:pk>/', api_views.ListingDetailAPIView.as_view(), name='api_listing_detail'),
     path('<int:pk>/unlock/', api_views.unlock_listing_api_view, name='api_unlock_listing'),

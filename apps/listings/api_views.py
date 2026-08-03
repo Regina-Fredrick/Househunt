@@ -1,9 +1,5 @@
 """
 apps/listings/api_views.py
-
-Kept separate from views.py (which still serves the old template-based
-pages during the transition — see note in urls.py about running both in
-parallel until the React frontend fully replaces the templates).
 """
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, status
@@ -14,7 +10,7 @@ from django.conf import settings
 import logging
 
 from .models import Listing, Neighborhood, UnlockLedger
-from .serializers import ListingCardSerializer, ListingDetailSerializer, NeighborhoodSerializer
+from .serializers import ListingCardSerializer, ListingDetailSerializer, NeighborhoodSerializer, MyListingSerializer
 from .filters import ListingFilter
 from . import mpesa
 
@@ -28,7 +24,6 @@ class NeighborhoodListAPIView(generics.ListAPIView):
 
 
 class ListingBrowseAPIView(generics.ListAPIView):
-    """Mirrors browse_listings_view — approved listings only, same filters."""
     serializer_class = ListingCardSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend]
@@ -41,12 +36,6 @@ class ListingBrowseAPIView(generics.ListAPIView):
 
 
 class ListingDetailAPIView(generics.RetrieveAPIView):
-    """
-    Mirrors listing_detail_view, including the view-count increment.
-    The actual paywall gating happens inside ListingDetailSerializer, not
-    here — this view just fetches the object and lets the serializer decide
-    what the requesting user is allowed to see.
-    """
     serializer_class = ListingDetailSerializer
     permission_classes = [permissions.AllowAny]
     queryset = Listing.objects.filter(status='approved').select_related(
@@ -60,15 +49,19 @@ class ListingDetailAPIView(generics.RetrieveAPIView):
         return obj
 
 
+class MyListingsAPIView(generics.ListAPIView):
+    serializer_class = MyListingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Listing.objects.filter(owner=self.request.user).select_related(
+            'neighborhood'
+        ).prefetch_related('images').order_by('-created_at')
+
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def unlock_listing_api_view(request, pk):
-    """
-    Same logic as unlock_listing_view in views.py — triggers a real STK
-    Push and creates a 'pending' UnlockLedger row. Kept as a thin wrapper
-    around the same mpesa.stk_push() call rather than duplicating the
-    M-Pesa integration logic itself.
-    """
     listing = get_object_or_404(Listing, pk=pk, status='approved')
 
     already_unlocked = UnlockLedger.objects.filter(

@@ -75,8 +75,6 @@ class ListingDetailSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
-        # Cache on the instance per-request so the 4 separate
-        # SerializerMethodFields below don't each re-query the DB.
         if not hasattr(obj, '_is_unlocked_cache'):
             obj._is_unlocked_cache = UnlockLedger.objects.filter(
                 user=request.user, listing=obj, status='completed'
@@ -105,9 +103,6 @@ class ListingDetailSerializer(serializers.ModelSerializer):
             url = request.build_absolute_uri(hero.image.url) if request else hero.image.url
             result.append({'id': hero.id, 'image': url, 'order': hero.order})
 
-        # Interior images (everything after the hero shot) are only
-        # included at all if unlocked — this is the actual security fix
-        # over the old CSS-blur approach.
         if self._is_unlocked(obj):
             for img in all_images[1:]:
                 url = request.build_absolute_uri(img.image.url) if request else img.image.url
@@ -123,3 +118,24 @@ class ListingDetailSerializer(serializers.ModelSerializer):
 
     def get_longitude(self, obj):
         return obj.longitude if self._is_unlocked(obj) else None
+
+
+class MyListingSerializer(serializers.ModelSerializer):
+    neighborhood = NeighborhoodSerializer(read_only=True)
+    hero_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Listing
+        fields = [
+            'id', 'title', 'price', 'status', 'property_type', 'listing_type',
+            'bedrooms', 'bathrooms', 'neighborhood', 'hero_image', 'views_count',
+            'created_at',
+        ]
+
+    def get_hero_image(self, obj):
+        first = obj.images.order_by('order').first()
+        if not first:
+            return None
+        request = self.context.get('request')
+        url = first.thumbnail.url if first.thumbnail else first.image.url
+        return request.build_absolute_uri(url) if request else url

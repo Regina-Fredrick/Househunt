@@ -19,54 +19,25 @@ export default function BrowsePage() {
   }, []);
 
   if (loading) return <p>Loading listings...</p>;
-
   if (listings.length === 0) return <p>No listings found.</p>;
 
   return (
     <div>
-      <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', marginBottom: 20 }}>
-        Browse Listings
-      </h2>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: 20,
-      }}>
+      <h2 style={{ marginBottom: 20 }}>Browse Listings</h2>
+      <div className="grid">
         {listings.map((listing) => (
-          <Link
-            key={listing.id}
-            to={`/listings/${listing.id}`}
-            style={{
-              textDecoration: 'none',
-              color: 'inherit',
-              background: 'white',
-              borderRadius: 16,
-              overflow: 'hidden',
-              boxShadow: '0 2px 12px rgba(26,29,41,0.06)',
-              display: 'block',
-            }}
-          >
+          <Link key={listing.id} to={`/listings/${listing.id}`} className="card">
             {listing.images && listing.images[0] && (
               <img
                 src={listing.images[0].image}
                 alt={listing.title}
-                style={{ width: '100%', height: 160, objectFit: 'cover' }}
+                className="card-img"
               />
             )}
-            <div style={{ padding: 14 }}>
+            <div className="card-body">
               <h3 style={{ fontSize: '1rem', margin: '0 0 6px' }}>{listing.title}</h3>
-              <p style={{
-                display: 'inline-block',
-                background: '#FFF4E8',
-                color: '#F2994A',
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: 8,
-                fontSize: '0.9rem',
-              }}>
-                KES {listing.price}
-              </p>
-              <p style={{ color: '#8B92A5', fontSize: '0.85rem', margin: '6px 0 0' }}>
+              <p className="price-tag">KES {listing.price}</p>
+              <p className="muted" style={{ fontSize: '0.85rem', margin: '6px 0 0' }}>
                 {listing.neighborhood?.name}
               </p>
             </div>

@@ -119,7 +119,7 @@ MPESA_CALLBACK_BASE_URL = os.environ.get('MPESA_CALLBACK_BASE_URL', '')
 # actual Till number (see the warning in apps/listings/mpesa.py).
 MPESA_TRANSACTION_TYPE = os.environ.get('MPESA_TRANSACTION_TYPE', 'CustomerPayBillOnline')
 
-
+CSRF_TRUSTED_ORIGINS = ['http://localhost:5173']
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
