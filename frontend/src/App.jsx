@@ -4,6 +4,7 @@ import Layout from './Pages/Layout';
 import BrowsePage from './Pages/BrowsePage';
 import DetailPage from './Pages/DetailPage';
 import LoginPage from './Pages/LoginPage';
+import RegisterPage from './Pages/RegisterPage';
 import MyListingsPage from './Pages/MyListingsPage';
 import CreateListingPage from './Pages/CreateListingPage';
 import EditListingPage from './Pages/EditListingPage';
@@ -30,6 +31,7 @@ function App() {
           <Route index element={<BrowsePage />} />
           <Route path="listings/:id" element={<DetailPage />} />
           <Route path="login" element={<LoginPage onLogin={setUser} />} />
+          <Route path="register" element={<RegisterPage />} />
           <Route path="mine" element={<MyListingsPage />} />
           <Route path="create" element={<CreateListingPage />} />
           <Route path="listings/:id/edit" element={<EditListingPage />} />

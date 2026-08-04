@@ -64,9 +64,12 @@ export default function Sidebar({ user, onLogout }) {
           >
             Logout ({user.username})
           </button>
-        ) : (
-          <NavItem to="/login" label="Login" active={location.pathname === '/login'} />
-        )}
+) : (
+  <>
+    <NavItem to="/login" label="Login" active={location.pathname === '/login'} />
+    <NavItem to="/register" label="Register" active={location.pathname === '/register'} />
+  </>
+)}
       </div>
     </div>
   );
