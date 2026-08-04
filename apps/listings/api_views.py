@@ -13,6 +13,7 @@ from .models import Listing, Neighborhood, UnlockLedger, ListingImage
 from .serializers import (
     ListingCardSerializer, ListingDetailSerializer, NeighborhoodSerializer,
     MyListingSerializer, ListingCreateSerializer, ListingImageUploadSerializer,
+    ListingEditSerializer,
 )
 from .filters import ListingFilter
 from . import mpesa
@@ -149,3 +150,22 @@ def unlock_status_api_view(request, pk):
     if not ledger:
         return Response({'status': 'none'})
     return Response({'status': ledger.status, 'failure_reason': ledger.failure_reason})
+class EditListingAPIView(generics.UpdateAPIView):
+    serializer_class = ListingEditSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Listing.objects.filter(owner=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        listing = self.get_object()
+        return Response(MyListingSerializer(listing, context={'request': request}).data)
+
+
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def delete_listing_api_view(request, pk):
+    listing = get_object_or_404(Listing, pk=pk, owner=request.user)
+    listing.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)   

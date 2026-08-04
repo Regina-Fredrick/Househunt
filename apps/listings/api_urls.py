@@ -22,4 +22,6 @@ urlpatterns = [
     path('<int:pk>/unlock/status/', api_views.unlock_status_api_view, name='api_unlock_status'),
     path('create/', api_views.CreateListingAPIView.as_view(), name='api_create_listing'),
     path('<int:pk>/upload-image/', api_views.upload_listing_image_api_view, name='api_upload_image'),
+    path('<int:pk>/edit/', api_views.EditListingAPIView.as_view(), name='api_edit_listing'),
+    path('<int:pk>/delete/', api_views.delete_listing_api_view, name='api_delete_listing'),
 ]

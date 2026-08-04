@@ -6,6 +6,7 @@ import DetailPage from './Pages/DetailPage';
 import LoginPage from './Pages/LoginPage';
 import MyListingsPage from './Pages/MyListingsPage';
 import CreateListingPage from './Pages/CreateListingPage';
+import EditListingPage from './Pages/EditListingPage';
 import { apiGet, apiPost } from './utils/api';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
           <Route path="login" element={<LoginPage onLogin={setUser} />} />
           <Route path="mine" element={<MyListingsPage />} />
           <Route path="create" element={<CreateListingPage />} />
+          <Route path="listings/:id/edit" element={<EditListingPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

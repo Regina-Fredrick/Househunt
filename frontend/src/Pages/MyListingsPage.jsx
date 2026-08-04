@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { apiGet } from '../utils/api';
+import { Link, useNavigate } from 'react-router-dom';
+import { apiGet, getCsrfToken } from '../utils/api';
 
 const STATUS_STYLES = {
   approved: { background: '#E6FBF8', color: '#1AA89A' },
@@ -21,18 +21,35 @@ export default function MyListingsPage() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  function loadListings() {
+    return apiGet('/api/listings/mine/').then((data) => {
+      setListings(data.results || data);
+    });
+  }
 
   useEffect(() => {
-    apiGet('/api/listings/mine/')
-      .then((data) => {
-        setListings(data.results || data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+    loadListings()
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
+
+  async function handleDelete(id, title) {
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    try {
+      const csrfToken = await getCsrfToken();
+      const res = await fetch(`/api/listings/${id}/delete/`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': csrfToken },
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      setListings(listings.filter((l) => l.id !== id));
+    } catch (err) {
+      alert(err.message);
+    }
+  }
 
   if (loading) return <p>Loading your listings...</p>;
   if (error) return <p style={{ color: '#E05263' }}>{error}</p>;
@@ -63,6 +80,7 @@ export default function MyListingsPage() {
               <th style={{ padding: 8 }}>Price</th>
               <th style={{ padding: 8 }}>Status</th>
               <th style={{ padding: 8 }}>Views</th>
+              <th style={{ padding: 8 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -84,6 +102,20 @@ export default function MyListingsPage() {
                   </span>
                 </td>
                 <td style={{ padding: 8 }}>{listing.views_count}</td>
+                <td style={{ padding: 8 }}>
+                  <button
+                    onClick={() => navigate(`/listings/${listing.id}/edit`)}
+                    style={{ marginRight: 8, padding: '4px 12px', borderRadius: 6, border: '1px solid #E3E5EA', background: 'white', cursor: 'pointer' }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(listing.id, listing.title)}
+                    style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #E05263', color: '#E05263', background: 'white', cursor: 'pointer' }}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

@@ -157,3 +157,15 @@ class ListingImageUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = ListingImage
         fields = ['id', 'image', 'order']   
+class ListingEditSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Listing
+        fields = [
+            'title', 'description', 'price', 'property_type', 'listing_type',
+            'bedrooms', 'bathrooms', 'neighborhood',
+        ]
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Price must be greater than 0.')
+        return value       
