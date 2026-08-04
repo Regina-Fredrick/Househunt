@@ -1,23 +1,57 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { apiGet, apiPost } from '../utils/api';
 
 export default function DetailPage() {
   const { id } = useParams();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockMessage, setUnlockMessage] = useState('');
+  const [unlockError, setUnlockError] = useState('');
+  const pollRef = useRef(null);
+
+  function loadListing() {
+    return apiGet(`/api/listings/${id}/`).then(setListing);
+  }
 
   useEffect(() => {
-    fetch(`/api/listings/${id}/`)
-      .then((res) => res.json())
-      .then((data) => {
-        setListing(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load listing', err);
-        setLoading(false);
-      });
+    loadListing().finally(() => setLoading(false));
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [id]);
+
+  async function handleUnlock() {
+    setUnlockError('');
+    setUnlocking(true);
+    try {
+      const res = await apiPost(`/api/listings/${id}/unlock/`, {});
+      setUnlockMessage(res.detail || 'Check your phone to complete the M-Pesa payment.');
+
+      pollRef.current = setInterval(async () => {
+        try {
+          const statusRes = await apiGet(`/api/listings/${id}/unlock/status/`);
+          if (statusRes.status === 'completed') {
+            clearInterval(pollRef.current);
+            setUnlocking(false);
+            setUnlockMessage('Payment confirmed! Unlocking listing...');
+            await loadListing();
+          } else if (statusRes.status === 'failed') {
+            clearInterval(pollRef.current);
+            setUnlocking(false);
+            setUnlockError(statusRes.failure_reason || 'Payment failed. Please try again.');
+          }
+        } catch (err) {
+          clearInterval(pollRef.current);
+          setUnlocking(false);
+        }
+      }, 3000);
+    } catch (err) {
+      setUnlockError(err.message);
+      setUnlocking(false);
+    }
+  }
 
   if (loading) return <p>Loading...</p>;
   if (!listing) return <p>Listing not found.</p>;
@@ -51,11 +85,26 @@ export default function DetailPage() {
       <h4>Description</h4>
       <p>{listing.description}</p>
 
-      {!listing.is_unlocked && listing.pending_unlock !== undefined && (
+      {!listing.is_unlocked && (
         <div className="lock-box">
           <strong>This listing is locked.</strong>
           <p style={{ margin: '8px 0 0' }}>Unlock full photos and contact details for KES 500.</p>
-          <button className="btn btn-primary" style={{ marginTop: 12 }}>Unlock for KES 500</button>
+
+          {unlockError && (
+            <p style={{ color: '#E05263', marginTop: 8 }}>{unlockError}</p>
+          )}
+          {unlockMessage && !unlockError && (
+            <p style={{ color: '#7C5CFC', marginTop: 8 }}>{unlockMessage}</p>
+          )}
+
+          <button
+            className="btn btn-primary"
+            style={{ marginTop: 12 }}
+            onClick={handleUnlock}
+            disabled={unlocking}
+          >
+            {unlocking ? 'Waiting for payment...' : 'Unlock for KES 500'}
+          </button>
         </div>
       )}
 
