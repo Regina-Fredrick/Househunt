@@ -28,4 +28,8 @@ urlpatterns = [
     path('<int:pk>/admin-approve/', api_views.admin_approve_listing_api_view, name='api_admin_approve'),
     path('<int:pk>/admin-reject/', api_views.admin_reject_listing_api_view, name='api_admin_reject'),
     path('<int:pk>/unlock-with-ad/', api_views.unlock_with_ad_api_view, name='api_unlock_with_ad'),
+    path('tours/create/', api_views.CreateTourRequestAPIView.as_view(), name='api_create_tour'),
+    path('tours/mine/', api_views.MyTourRequestsAPIView.as_view(), name='api_my_tours'),
+    path('tours/incoming/', api_views.IncomingTourRequestsAPIView.as_view(), name='api_incoming_tours'),
+    path('tours/<int:pk>/status/', api_views.update_tour_request_status_api_view, name='api_tour_status'),
 ]

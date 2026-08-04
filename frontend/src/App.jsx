@@ -10,6 +10,7 @@ import CreateListingPage from './Pages/CreateListingPage';
 import EditListingPage from './Pages/EditListingPage';
 import ProfilePage from './Pages/ProfilePage';
 import AdminDashboardPage from './Pages/AdminDashboardPage';
+import MyBookingsPage from './Pages/MyBookingsPage';
 import { apiGet, apiPost } from './utils/api';
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
           <Route path="listings/:id/edit" element={<EditListingPage />} />
           <Route path="profile" element={<ProfilePage user={user} onUpdate={setUser} />} />
           <Route path="admin" element={<AdminDashboardPage />} />
+          <Route path="bookings" element={<MyBookingsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

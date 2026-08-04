@@ -47,6 +47,7 @@ export default function Sidebar({ user, onLogout }) {
           <NavItem to="/mine" label="My Listings" active={location.pathname === '/mine'} />
           <NavItem to="/create" label="+ New Listing" active={location.pathname === '/create'} />
           <NavItem to="/profile" label="Profile" active={location.pathname === '/profile'} />
+          <NavItem to="/bookings" label="My Bookings" active={location.pathname === '/bookings'} />
           {user.is_staff && (
             <NavItem to="/admin" label="Moderation" active={location.pathname === '/admin'} />
           )}

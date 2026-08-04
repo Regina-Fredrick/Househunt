@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiGet, apiPost } from '../utils/api';
-
+import RequestTourModal from './RequestTourModal';
 export default function DetailPage() {
   const { id } = useParams();
   const [listing, setListing] = useState(null);
@@ -9,8 +9,9 @@ export default function DetailPage() {
   const [unlocking, setUnlocking] = useState(false);
   const [unlockMessage, setUnlockMessage] = useState('');
   const [unlockError, setUnlockError] = useState('');
+  const [showTourForm, setShowTourForm] = useState(false);
+  const [tourRequested, setTourRequested] = useState(false);
   const pollRef = useRef(null);
-
   function loadListing() {
     return apiGet(`/api/listings/${id}/`).then(setListing);
   }
@@ -108,11 +109,34 @@ export default function DetailPage() {
         </div>
       )}
 
-      {listing.is_unlocked && (
+{listing.is_unlocked && (
         <div style={{ marginTop: 20 }}>
           <p><strong>Owner:</strong> {listing.owner_username}</p>
           <p><strong>Phone:</strong> {listing.owner_phone}</p>
         </div>
+      )}
+
+      {!showTourForm && !tourRequested && (
+        <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => setShowTourForm(true)}>
+          Request a Tour
+        </button>
+      )}
+
+      {tourRequested && (
+        <div className="alert alert-success" style={{ marginTop: 20 }}>
+          Tour request sent! The owner will confirm shortly.
+        </div>
+      )}
+
+      {showTourForm && (
+        <RequestTourModal
+          listingId={listing.id}
+          onClose={() => setShowTourForm(false)}
+          onSuccess={() => {
+            setShowTourForm(false);
+            setTourRequested(true);
+          }}
+        />
       )}
     </div>
   );

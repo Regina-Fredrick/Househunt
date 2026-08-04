@@ -214,3 +214,23 @@ class ListingReport(models.Model):
 
     def __str__(self):
         return f"{self.reporter.username} reported {self.listing.title} ({self.reason})"
+class TourRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('cancelled', 'Cancelled'),
+        ('completed', 'Completed'),
+    ]
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='tour_requests')
+    requester = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tour_requests')
+    requested_date = models.DateField()
+    requested_time = models.TimeField()
+    message = models.TextField(blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.requester.username} -> {self.listing.title} ({self.status})"    

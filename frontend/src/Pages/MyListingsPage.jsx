@@ -6,8 +6,10 @@ const STATUS_BADGE = {
   approved: 'badge-success',
   rejected: 'badge-danger',
   pending: 'badge-warning',
+  confirmed: 'badge-success',
+  cancelled: 'badge-danger',
+  completed: 'badge-success',
 };
-
 const STAT_COLORS = {
   total: 'var(--forest)',
   pending: 'var(--clay)',
@@ -17,21 +19,46 @@ const STAT_COLORS = {
 
 export default function MyListingsPage() {
   const [listings, setListings] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
   function loadListings() {
     return apiGet('/api/listings/mine/').then((data) => {
       setListings(data.results || data);
     });
   }
 
+  function loadBookings() {
+    return apiGet('/api/listings/tours/incoming/').then((data) => {
+      setBookings(data.results || data);
+    });
+  }
+
   useEffect(() => {
-    loadListings()
+    Promise.all([loadListings(), loadBookings()])
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleBookingAction(id, newStatus) {
+    try {
+      const csrfToken = await getCsrfToken();
+      const res = await fetch(`/api/listings/tours/${id}/status/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error('Update failed');
+      await loadBookings();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
 
   async function handleDelete(id, title) {
     if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
@@ -112,7 +139,48 @@ export default function MyListingsPage() {
             ))}
           </tbody>
         </table>
-      )}
-    </div>
-  );
+     )}
+
+     <h2 style={{ marginTop: 40, marginBottom: 16 }}>Incoming Tour Requests</h2>
+     {bookings.length === 0 ? (
+       <p className="muted">No tour requests yet.</p>
+     ) : (
+       <table className="data-table">
+         <thead>
+           <tr>
+             <th>Listing</th>
+             <th>Requested By</th>
+             <th>Date</th>
+             <th>Time</th>
+             <th>Status</th>
+             <th>Actions</th>
+           </tr>
+         </thead>
+         <tbody>
+           {bookings.map((b) => (
+             <tr key={b.id}>
+               <td>{b.listing_title}</td>
+               <td>{b.requester_username}</td>
+               <td>{b.requested_date}</td>
+               <td>{b.requested_time}</td>
+               <td><span className={`badge ${STATUS_BADGE[b.status]}`}>{b.status}</span></td>
+               <td>
+                 {b.status === 'pending' && (
+                   <>
+                     <button onClick={() => handleBookingAction(b.id, 'confirmed')} className="btn-outline-success btn-sm" style={{ marginRight: 8 }}>
+                       Confirm
+                     </button>
+                     <button onClick={() => handleBookingAction(b.id, 'cancelled')} className="btn-outline-danger btn-sm">
+                       Cancel
+                     </button>
+                   </>
+                 )}
+               </td>
+             </tr>
+           ))}
+         </tbody>
+       </table>
+     )}
+   </div>
+ );
 }

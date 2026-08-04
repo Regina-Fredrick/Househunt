@@ -9,7 +9,7 @@ browser never receives this data in the first place — there's nothing to
 "unblur" via dev tools.
 """
 from rest_framework import serializers
-from .models import Listing, ListingImage, Neighborhood, UnlockLedger
+from .models import Listing, ListingImage, Neighborhood, UnlockLedger, TourRequest
 
 
 class NeighborhoodSerializer(serializers.ModelSerializer):
@@ -179,3 +179,20 @@ class AdminListingSerializer(serializers.ModelSerializer):
             'id', 'title', 'price', 'status', 'flagged_reason', 'report_count',
             'property_type', 'neighborhood', 'owner_username', 'created_at',
         ]  
+class TourRequestSerializer(serializers.ModelSerializer):
+    listing_title = serializers.CharField(source='listing.title', read_only=True)
+    requester_username = serializers.CharField(source='requester.username', read_only=True)
+
+    class Meta:
+        model = TourRequest
+        fields = [
+            'id', 'listing', 'listing_title', 'requester_username',
+            'requested_date', 'requested_time', 'message', 'status', 'created_at',
+        ]
+        read_only_fields = ['id', 'status', 'created_at']
+
+
+class TourRequestCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TourRequest
+        fields = ['listing', 'requested_date', 'requested_time', 'message']     

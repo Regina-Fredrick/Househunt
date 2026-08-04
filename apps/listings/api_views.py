@@ -15,7 +15,9 @@ from .serializers import (
     ListingCardSerializer, ListingDetailSerializer, NeighborhoodSerializer,
     MyListingSerializer, ListingCreateSerializer, ListingImageUploadSerializer,
     ListingEditSerializer, AdminListingSerializer,
+    TourRequestSerializer, TourRequestCreateSerializer,
 )
+from .models import TourRequest
 from .filters import ListingFilter
 from . import mpesa
 
@@ -239,4 +241,42 @@ def unlock_with_ad_api_view(request, pk):
             'completed_at': timezone.now(),
         },
     )
-    return Response({'detail': 'Unlocked via rewarded ad.'})
+class CreateTourRequestAPIView(generics.CreateAPIView):
+    serializer_class = TourRequestCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        tour_request = serializer.save(requester=request.user)
+        return Response(TourRequestSerializer(tour_request).data, status=status.HTTP_201_CREATED)
+
+
+class MyTourRequestsAPIView(generics.ListAPIView):
+    """Bookings the logged-in user has requested as a buyer."""
+    serializer_class = TourRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return TourRequest.objects.filter(requester=self.request.user).select_related('listing')
+
+
+class IncomingTourRequestsAPIView(generics.ListAPIView):
+    """Bookings requested on listings the logged-in user owns."""
+    serializer_class = TourRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return TourRequest.objects.filter(listing__owner=self.request.user).select_related('listing', 'requester')
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def update_tour_request_status_api_view(request, pk):
+    tour_request = get_object_or_404(TourRequest, pk=pk, listing__owner=request.user)
+    new_status = request.data.get('status')
+    if new_status not in ('confirmed', 'cancelled', 'completed'):
+        return Response({'detail': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+    tour_request.status = new_status
+    tour_request.save()
+    return Response(TourRequestSerializer(tour_request).data)  
