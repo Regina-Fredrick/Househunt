@@ -24,4 +24,7 @@ urlpatterns = [
     path('<int:pk>/upload-image/', api_views.upload_listing_image_api_view, name='api_upload_image'),
     path('<int:pk>/edit/', api_views.EditListingAPIView.as_view(), name='api_edit_listing'),
     path('<int:pk>/delete/', api_views.delete_listing_api_view, name='api_delete_listing'),
+    path('admin/queue/', api_views.AdminModerationQueueAPIView.as_view(), name='api_admin_queue'),
+    path('<int:pk>/admin-approve/', api_views.admin_approve_listing_api_view, name='api_admin_approve'),
+    path('<int:pk>/admin-reject/', api_views.admin_reject_listing_api_view, name='api_admin_reject'),
 ]

@@ -168,4 +168,14 @@ class ListingEditSerializer(serializers.ModelSerializer):
     def validate_price(self, value):
         if value <= 0:
             raise serializers.ValidationError('Price must be greater than 0.')
-        return value       
+        return value 
+class AdminListingSerializer(serializers.ModelSerializer):
+    neighborhood = NeighborhoodSerializer(read_only=True)
+    owner_username = serializers.CharField(source='owner.username', read_only=True)
+
+    class Meta:
+        model = Listing
+        fields = [
+            'id', 'title', 'price', 'status', 'flagged_reason', 'report_count',
+            'property_type', 'neighborhood', 'owner_username', 'created_at',
+        ]  

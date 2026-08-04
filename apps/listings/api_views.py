@@ -13,7 +13,7 @@ from .models import Listing, Neighborhood, UnlockLedger, ListingImage
 from .serializers import (
     ListingCardSerializer, ListingDetailSerializer, NeighborhoodSerializer,
     MyListingSerializer, ListingCreateSerializer, ListingImageUploadSerializer,
-    ListingEditSerializer,
+    ListingEditSerializer, AdminListingSerializer,
 )
 from .filters import ListingFilter
 from . import mpesa
@@ -169,3 +169,51 @@ def delete_listing_api_view(request, pk):
     listing = get_object_or_404(Listing, pk=pk, owner=request.user)
     listing.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)   
+class AdminModerationQueueAPIView(generics.ListAPIView):
+    """Pending listings and/or flagged listings, for admin review."""
+    serializer_class = AdminListingSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        from django.db.models import Q
+        return Listing.objects.filter(
+            Q(status='pending') | ~Q(flagged_reason='')
+        ).select_related('neighborhood', 'owner').order_by('-created_at')
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def admin_approve_listing_api_view(request, pk):
+    listing = get_object_or_404(Listing, pk=pk)
+    listing.status = 'approved'
+    listing.save()
+    if listing.owner.email:
+        from django.core.mail import send_mail
+        send_mail(
+            'Your listing has been approved - HouseHunt',
+            f'Hi {listing.owner.username},\n\nYour listing "{listing.title}" has been approved and is now live.',
+            settings.DEFAULT_FROM_EMAIL,
+            [listing.owner.email],
+            fail_silently=True,
+        )
+    return Response(AdminListingSerializer(listing).data)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def admin_reject_listing_api_view(request, pk):
+    listing = get_object_or_404(Listing, pk=pk)
+    reason = request.data.get('reason', '')
+    listing.status = 'rejected'
+    listing.rejection_reason = reason
+    listing.save()
+    if listing.owner.email:
+        from django.core.mail import send_mail
+        send_mail(
+            'Your listing was not approved - HouseHunt',
+            f'Hi {listing.owner.username},\n\nYour listing "{listing.title}" was not approved.\n\nReason: {reason}',
+            settings.DEFAULT_FROM_EMAIL,
+            [listing.owner.email],
+            fail_silently=True,
+        )
+    return Response(AdminListingSerializer(listing).data)  
