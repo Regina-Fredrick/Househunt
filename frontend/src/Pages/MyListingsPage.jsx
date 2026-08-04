@@ -2,20 +2,18 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiGet, getCsrfToken } from '../utils/api';
 
-const STATUS_STYLES = {
-  approved: { background: '#E6FBF8', color: '#1AA89A' },
-  rejected: { background: '#FDECEE', color: '#E05263' },
-  pending: { background: '#FFF4E8', color: '#F2994A' },
+const STATUS_BADGE = {
+  approved: 'badge-success',
+  rejected: 'badge-danger',
+  pending: 'badge-warning',
 };
 
-function StatCard({ label, value, color }) {
-  return (
-    <div className="card" style={{ padding: 16, cursor: 'default' }}>
-      <div className="muted" style={{ fontSize: '0.85rem' }}>{label}</div>
-      <div style={{ fontSize: '1.8rem', fontWeight: 700, color }}>{value}</div>
-    </div>
-  );
-}
+const STAT_COLORS = {
+  total: 'var(--forest)',
+  pending: 'var(--clay)',
+  approved: 'var(--sage)',
+  views: 'var(--brick)',
+};
 
 export default function MyListingsPage() {
   const [listings, setListings] = useState([]);
@@ -52,7 +50,7 @@ export default function MyListingsPage() {
   }
 
   if (loading) return <p>Loading your listings...</p>;
-  if (error) return <p style={{ color: '#E05263' }}>{error}</p>;
+  if (error) return <div className="alert alert-error">{error}</div>;
 
   const total = listings.length;
   const pending = listings.filter((l) => l.status === 'pending').length;
@@ -64,55 +62,49 @@ export default function MyListingsPage() {
       <h2 style={{ marginBottom: 20 }}>My Listings</h2>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginBottom: 24 }}>
-        <StatCard label="Total Listings" value={total} color="#7C5CFC" />
-        <StatCard label="Pending" value={pending} color="#F2994A" />
-        <StatCard label="Approved" value={approved} color="#1AA89A" />
-        <StatCard label="Total Views" value={totalViews} color="#5B8DEF" />
+        <div className="card stat-card">
+          <div className="stat-card-label">Total Listings</div>
+          <div className="stat-card-value" style={{ color: STAT_COLORS.total }}>{total}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-card-label">Pending</div>
+          <div className="stat-card-value" style={{ color: STAT_COLORS.pending }}>{pending}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-card-label">Approved</div>
+          <div className="stat-card-value" style={{ color: STAT_COLORS.approved }}>{approved}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-card-label">Total Views</div>
+          <div className="stat-card-value" style={{ color: STAT_COLORS.views }}>{totalViews}</div>
+        </div>
       </div>
 
       {listings.length === 0 ? (
         <p className="muted">You have no listings yet.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="data-table">
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #EDEEF2' }}>
-              <th style={{ padding: 8 }}>Title</th>
-              <th style={{ padding: 8 }}>Price</th>
-              <th style={{ padding: 8 }}>Status</th>
-              <th style={{ padding: 8 }}>Views</th>
-              <th style={{ padding: 8 }}>Actions</th>
+            <tr>
+              <th>Title</th>
+              <th>Price</th>
+              <th>Status</th>
+              <th>Views</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {listings.map((listing) => (
-              <tr key={listing.id} style={{ borderBottom: '1px solid #F2F3F5' }}>
-                <td style={{ padding: 8 }}>
-                  <Link to={`/listings/${listing.id}`}>{listing.title}</Link>
-                </td>
-                <td style={{ padding: 8 }}>KES {listing.price}</td>
-                <td style={{ padding: 8 }}>
-                  <span style={{
-                    ...STATUS_STYLES[listing.status],
-                    padding: '3px 10px',
-                    borderRadius: 8,
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                  }}>
-                    {listing.status}
-                  </span>
-                </td>
-                <td style={{ padding: 8 }}>{listing.views_count}</td>
-                <td style={{ padding: 8 }}>
-                  <button
-                    onClick={() => navigate(`/listings/${listing.id}/edit`)}
-                    style={{ marginRight: 8, padding: '4px 12px', borderRadius: 6, border: '1px solid #E3E5EA', background: 'white', cursor: 'pointer' }}
-                  >
+              <tr key={listing.id}>
+                <td><Link to={`/listings/${listing.id}`}>{listing.title}</Link></td>
+                <td>KES {listing.price}</td>
+                <td><span className={`badge ${STATUS_BADGE[listing.status]}`}>{listing.status}</span></td>
+                <td>{listing.views_count}</td>
+                <td>
+                  <button onClick={() => navigate(`/listings/${listing.id}/edit`)} className="btn-outline btn-sm" style={{ marginRight: 8 }}>
                     Edit
                   </button>
-                  <button
-                    onClick={() => handleDelete(listing.id, listing.title)}
-                    style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #E05263', color: '#E05263', background: 'white', cursor: 'pointer' }}
-                  >
+                  <button onClick={() => handleDelete(listing.id, listing.title)} className="btn-outline-danger btn-sm">
                     Delete
                   </button>
                 </td>

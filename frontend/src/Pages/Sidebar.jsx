@@ -10,8 +10,8 @@ function NavItem({ to, label, active }) {
         borderRadius: 10,
         marginBottom: 4,
         textDecoration: 'none',
-        color: active ? '#1A1D29' : '#8B92A5',
-        background: active ? '#F1EDFE' : 'transparent',
+        color: active ? 'var(--ink)' : 'var(--muted)',
+        background: active ? 'var(--brick-bg)' : 'transparent',
         fontWeight: active ? 600 : 500,
       }}
     >
@@ -28,7 +28,7 @@ export default function Sidebar({ user, onLogout }) {
       width: 220,
       minHeight: '100vh',
       background: 'white',
-      borderRight: '1px solid #EDEEF2',
+      borderRight: '1px solid var(--line)',
       padding: '20px 12px',
       boxSizing: 'border-box',
     }}>
@@ -52,7 +52,7 @@ export default function Sidebar({ user, onLogout }) {
           )}
         </>
       )}
-      <div style={{ marginTop: 24, borderTop: '1px solid #EDEEF2', paddingTop: 16 }}>
+      <div style={{ marginTop: 24, borderTop: '1px solid var(--line)', paddingTop: 16 }}>
         {user ? (
           <button
             onClick={onLogout}
@@ -60,20 +60,23 @@ export default function Sidebar({ user, onLogout }) {
               width: '100%',
               padding: '10px 16px',
               borderRadius: 10,
-              border: '1px solid #E3E5EA',
+              border: '1px solid var(--line)',
               background: 'transparent',
+              color: 'var(--ink)',
               cursor: 'pointer',
               textAlign: 'left',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '0.95rem',
             }}
           >
             Logout ({user.username})
           </button>
-) : (
-  <>
-    <NavItem to="/login" label="Login" active={location.pathname === '/login'} />
-    <NavItem to="/register" label="Register" active={location.pathname === '/register'} />
-  </>
-)}
+        ) : (
+          <>
+            <NavItem to="/login" label="Login" active={location.pathname === '/login'} />
+            <NavItem to="/register" label="Register" active={location.pathname === '/register'} />
+          </>
+        )}
       </div>
     </div>
   );

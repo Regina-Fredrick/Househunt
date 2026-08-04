@@ -25,10 +25,10 @@ export default function LoginPage({ onLogin }) {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '0 auto' }}>
+    <div style={{ maxWidth: 400 }}>
       <h2>Login</h2>
       {error && (
-        <div style={{ background: '#FDECEE', color: '#E05263', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+        <div className="alert alert-error">
           {error}
         </div>
       )}
@@ -38,16 +38,14 @@ export default function LoginPage({ onLogin }) {
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          style={{ display: 'block', width: '100%', padding: 10, marginBottom: 12, borderRadius: 8, border: '1px solid #E3E5EA' }}
         />
         <label>Password</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ display: 'block', width: '100%', padding: 10, marginBottom: 16, borderRadius: 8, border: '1px solid #E3E5EA' }}
         />
-        <button type="submit" className="btn btn-primary" disabled={loading}>
+        <button type="submit" className="btn btn-primary" style={{ marginTop: 16 }} disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>

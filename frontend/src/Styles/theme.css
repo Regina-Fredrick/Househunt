@@ -1,14 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
 :root {
-  --ink: #1A1D29;
-  --paper: #F8F9FB;
-  --orange: #F2994A;
-  --blue: #5B8DEF;
-  --purple: #7C5CFC;
-  --teal: #2ED9C3;
-  --muted: #8B92A5;
-  --danger: #E05263;
+  --ink: #1C2019;
+  --paper: #F7F6F2;
+  --forest: #2C4A3B;
+  --forest-dark: #1F362A;
+  --brick: #93472C;
+  --brick-bg: #F5EAE1;
+  --sage: #3F6B47;
+  --sage-bg: #E8F0E9;
+  --clay: #8A5A34;
+  --clay-bg: #F5EAD9;
+  --muted: #7A7568;
+  --danger: #A83A3A;
+  --danger-bg: #F5E6E1;
+  --line: #E6E3DA;
 }
 
 body {
@@ -23,12 +29,12 @@ h1, h2, h3, h4, h5 {
 }
 
 a {
-  color: var(--purple);
+  color: var(--forest);
 }
 
 .navbar {
   background: white;
-  border-bottom: 1px solid #EDEEF2;
+  border-bottom: 1px solid var(--line);
   padding: 12px 24px;
   display: flex;
   justify-content: space-between;
@@ -51,16 +57,14 @@ a {
 }
 
 .container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 24px;
+  width: 100%;
 }
 
 .card {
   background: white;
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(26,29,41,0.06);
+  box-shadow: 0 1px 2px rgba(28, 32, 25, 0.04), 0 4px 14px rgba(28, 32, 25, 0.05);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   text-decoration: none;
   color: inherit;
@@ -69,7 +73,7 @@ a {
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(26,29,41,0.10);
+  box-shadow: 0 8px 22px rgba(28, 32, 25, 0.09);
 }
 
 .card-img {
@@ -82,12 +86,16 @@ a {
   padding: 14px;
 }
 
+/* Price gets the mono treatment — tabular digits, deliberately different
+   from every other label on the page, since price is the one number a
+   house-hunter compares across every card at a glance. */
 .price-tag {
   display: inline-block;
-  background: #FFF4E8;
-  color: var(--orange);
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
+  background: var(--brick-bg);
+  color: var(--brick);
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   padding: 4px 14px;
   border-radius: 8px;
 }
@@ -107,18 +115,30 @@ a {
   color: var(--muted);
 }
 
+/* The paywall box — the one genuinely distinctive mechanic in this
+   product, so it gets a textured, glass-like treatment rather than a
+   flat tinted rectangle. Pure CSS repeating-gradient, no image asset. */
 .lock-box {
-  background: #F1EDFE;
-  border: 1px solid var(--purple);
-  border-radius: 12px;
-  padding: 16px;
+  position: relative;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(44, 74, 59, 0.035) 0px,
+      rgba(44, 74, 59, 0.035) 1px,
+      transparent 1px,
+      transparent 9px
+    ),
+    white;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
   margin-top: 20px;
 }
 
 .btn {
   display: inline-block;
   padding: 8px 18px;
-  border-radius: 8px;
+  border-radius: 999px;
   font-weight: 600;
   text-decoration: none;
   border: none;
@@ -127,10 +147,107 @@ a {
 }
 
 .btn-primary {
-  background: var(--purple);
+  background: var(--brick);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #6A4CE0;
+  background: #7A3A23;
+}
+
+form label {
+  display: block;
+  font-weight: 500;
+  margin-top: 12px;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+form input,
+form textarea,
+form select {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+form input:focus,
+form textarea:focus,
+form select:focus {
+  outline: none;
+  border-color: var(--forest);
+  /* Was a stray lime-green (209,252,92) that matched nothing in the
+     palette — now a proper forest-tinted focus ring. */
+  box-shadow: 0 0 0 3px rgba(44, 74, 59, 0.15);
+}
+
+form input:disabled {
+  background: var(--paper);
+  color: var(--muted);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.data-table td {
+  padding: 8px;
+  border-bottom: 1px solid #F0EEE7;
+}
+
+.badge {
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge-success { background: var(--sage-bg); color: var(--sage); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-warning { background: var(--clay-bg); color: var(--clay); }
+
+.btn-outline-success { border: 1px solid var(--sage); color: var(--sage); background: white; }
+.btn-outline-danger { border: 1px solid var(--danger); color: var(--danger); background: white; }
+.btn-outline { border: 1px solid var(--line); color: var(--ink); background: white; }
+
+.btn-sm { padding: 4px 12px; font-size: 0.85rem; font-weight: 500; border-radius: 6px; cursor: pointer; }
+
+.alert {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.alert-error { background: var(--danger-bg); color: var(--danger); }
+.alert-success { background: var(--sage-bg); color: var(--sage); }
+.alert-info { background: var(--brick-bg); color: var(--brick); }
+
+.stat-card {
+  padding: 16px;
+}
+
+.stat-card-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.stat-card-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.8rem;
+  font-weight: 600;
 }

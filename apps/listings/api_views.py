@@ -7,6 +7,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from django.utils import timezone
 import logging
 
 from .models import Listing, Neighborhood, UnlockLedger, ListingImage
@@ -217,3 +218,25 @@ def admin_reject_listing_api_view(request, pk):
             fail_silently=True,
         )
     return Response(AdminListingSerializer(listing).data)  
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def unlock_with_ad_api_view(request, pk):
+    """
+    Grants free access after the user watches a rewarded ad on the
+    frontend. The frontend only calls this from Google's reward-earned
+    callback, so by the time this endpoint runs, the ad has already
+    been confirmed watched client-side. amount_paid=0 distinguishes
+    this from a real M-Pesa transaction in the ledger/revenue reports.
+    """
+    listing = get_object_or_404(Listing, pk=pk, status='approved')
+
+    ledger, _ = UnlockLedger.objects.update_or_create(
+        user=request.user, listing=listing,
+        defaults={
+            'amount_paid': 0,
+            'payment_method': 'ad_reward',
+            'status': 'completed',
+            'completed_at': timezone.now(),
+        },
+    )
+    return Response({'detail': 'Unlocked via rewarded ad.'})

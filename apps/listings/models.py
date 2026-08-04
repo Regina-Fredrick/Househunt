@@ -146,6 +146,11 @@ class UnlockLedger(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='unlocks')
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='unlocks')
     amount_paid = models.DecimalField(max_digits=8, decimal_places=2, default=500)
+    payment_method = models.CharField(
+        max_length=20,
+        choices=[('mpesa', 'M-Pesa'), ('ad_reward', 'Watched Ad')],
+        default='mpesa',
+    )
     payment_reference = models.CharField(max_length=100, blank=True)  # M-Pesa receipt number, filled in on success
     checkout_request_id = models.CharField(max_length=100, blank=True, db_index=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
