@@ -8,6 +8,7 @@ import RegisterPage from './Pages/RegisterPage';
 import MyListingsPage from './Pages/MyListingsPage';
 import CreateListingPage from './Pages/CreateListingPage';
 import EditListingPage from './Pages/EditListingPage';
+import ProfilePage from './Pages/ProfilePage';
 import { apiGet, apiPost } from './utils/api';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
           <Route path="mine" element={<MyListingsPage />} />
           <Route path="create" element={<CreateListingPage />} />
           <Route path="listings/:id/edit" element={<EditListingPage />} />
+          <Route path="profile" element={<ProfilePage user={user} onUpdate={setUser} />} />
         </Route>
       </Routes>
     </BrowserRouter>
