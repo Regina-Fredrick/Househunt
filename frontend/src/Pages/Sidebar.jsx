@@ -43,9 +43,11 @@ export default function Sidebar({ user, onLogout }) {
 
       <NavItem to="/" label="Browse" active={location.pathname === '/'} />
       {user && (
-        <NavItem to="/mine" label="My Listings" active={location.pathname === '/mine'} />
+        <>
+          <NavItem to="/mine" label="My Listings" active={location.pathname === '/mine'} />
+          <NavItem to="/create" label="+ New Listing" active={location.pathname === '/create'} />
+        </>
       )}
-
       <div style={{ marginTop: 24, borderTop: '1px solid #EDEEF2', paddingTop: 16 }}>
         {user ? (
           <button

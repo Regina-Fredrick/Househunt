@@ -1,13 +1,9 @@
 const API_BASE = '';
 
-let cachedCsrfToken = null;
-
 export async function getCsrfToken() {
-  if (cachedCsrfToken) return cachedCsrfToken;
   const res = await fetch(`${API_BASE}/api/auth/csrf/`, { credentials: 'include' });
   const data = await res.json();
-  cachedCsrfToken = data.csrfToken;
-  return cachedCsrfToken;
+  return data.csrfToken;
 }
 
 export async function apiPost(url, body) {
@@ -23,7 +19,7 @@ export async function apiPost(url, body) {
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.detail || 'Request failed');
+    throw new Error(data.detail || JSON.stringify(data));
   }
   return data;
 }
