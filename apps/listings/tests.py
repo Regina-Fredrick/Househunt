@@ -80,7 +80,8 @@ class PaywallTest(TestCase):
         self.buyer = User.objects.create_user(
             username='buyer',
             password='testpass123',
-            email='buyer@test.com'
+            email='buyer@test.com',
+            phone_number='0712345678',
         )
         self.neighborhood = Neighborhood.objects.create(name='Kilimani')
         self.listing = Listing.objects.create(
@@ -117,7 +118,7 @@ class PaywallTest(TestCase):
 
     def test_unlocked_user_sees_unlocked_flag(self):
         self.client.login(username='buyer', password='testpass123')
-        UnlockLedger.objects.create(user=self.buyer, listing=self.listing, amount_paid=500)
+        UnlockLedger.objects.create(user=self.buyer, listing=self.listing, amount_paid=500, status='completed')
         response = self.client.get(reverse('listing_detail', args=[self.listing.pk]))
         self.assertTrue(response.context['is_unlocked'])
 

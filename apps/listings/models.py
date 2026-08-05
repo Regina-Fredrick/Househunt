@@ -1,9 +1,11 @@
+import hashlib
 import io
 from decimal import Decimal
 from PIL import Image
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Avg
+from django.utils import timezone
 from apps.accounts.models import User
 
 
@@ -33,6 +35,8 @@ class Listing(models.Model):
     ]
     SINGLE_UNIT_TYPES = ('apartment', 'house')
     COMPLEX_PHRASES = ['full complex', 'gated community', 'block of flats', 'entire building', 'multiple units']
+    NEW_ACCOUNT_DAYS = 3
+    HIGH_VALUE_THRESHOLD = Decimal('500000')
 
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='listings')
     title = models.CharField(max_length=200)
@@ -42,7 +46,6 @@ class Listing(models.Model):
     bedrooms = models.PositiveIntegerField(null=True, blank=True)
     bathrooms = models.PositiveIntegerField(null=True, blank=True)
     neighborhood = models.ForeignKey(Neighborhood, on_delete=models.PROTECT)
-    # Premium/gated data — only shown to users who have unlocked the listing (see UnlockLedger)
     street_address = models.CharField(max_length=255, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -78,11 +81,24 @@ class Listing(models.Model):
                 status='approved',
             ).exclude(pk=self.pk)
             avg = others.aggregate(avg_price=Avg('price'))['avg_price']
-            # avg comes back as Decimal; 0.4 must also be Decimal or Python
-            # raises TypeError when multiplying the two.
             if avg and self.price < (avg * Decimal('0.4')):
                 reasons.append(
                     f"Price tripwire: KES {self.price} is under 40% of neighborhood average (KES {avg:.0f})"
+                )
+
+        if self.owner_id:
+            shared_phone_listings = Listing.objects.filter(
+                owner__phone_number=self.owner.phone_number
+            ).exclude(owner_id=self.owner_id).exclude(pk=self.pk)
+            if self.owner.phone_number and shared_phone_listings.exists():
+                reasons.append(
+                    "Shared contact: this phone number is also used by another account posting listings"
+                )
+
+            account_age_days = (timezone.now() - self.owner.date_joined).days
+            if account_age_days < self.NEW_ACCOUNT_DAYS and self.price and self.price > self.HIGH_VALUE_THRESHOLD:
+                reasons.append(
+                    f"New account + high value: account is {account_age_days} day(s) old, listing priced at KES {self.price}"
                 )
 
         self.flagged_reason = ' | '.join(reasons)
@@ -95,12 +111,35 @@ class ListingImage(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='listings/')
     thumbnail = models.ImageField(upload_to='listings/thumbnails/', blank=True, null=True)
+    image_hash = models.CharField(max_length=64, blank=True, db_index=True)
     order = models.PositiveIntegerField(default=0)
 
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        if is_new and self.image:
+            self.image_hash = self._compute_hash()
         super().save(*args, **kwargs)
         if self.image and not self.thumbnail:
             self._generate_thumbnail()
+        if is_new and self.image_hash:
+            self._check_duplicate()
+
+    def _compute_hash(self):
+        self.image.seek(0)
+        digest = hashlib.md5(self.image.read()).hexdigest()
+        self.image.seek(0)
+        return digest
+
+    def _check_duplicate(self):
+        duplicate = ListingImage.objects.filter(
+            image_hash=self.image_hash
+        ).exclude(listing_id=self.listing_id).exists()
+        if duplicate:
+            existing = self.listing.flagged_reason
+            note = "Duplicate image: this photo appears on another listing"
+            if note not in existing:
+                combined = f"{existing} | {note}" if existing else note
+                Listing.objects.filter(pk=self.listing_id).update(flagged_reason=combined)
 
     def _generate_thumbnail(self):
         img = Image.open(self.image)
@@ -120,23 +159,6 @@ class ListingImage(models.Model):
 
 
 class UnlockLedger(models.Model):
-    """
-    Records a paywall unlock attempt/success. One row per (user, listing) —
-    the unique_together constraint means a user is never charged twice for
-    the same listing.
-
-    Phase 1: rows were created directly by the unlock view (simulated payment,
-    status always effectively 'completed' the moment the row existed).
-
-    Phase 2: the flow is now asynchronous —
-      1. unlock_listing_view creates a 'pending' row and triggers STK Push,
-         storing checkout_request_id so the callback can find this row again.
-      2. M-Pesa's callback (mpesa_callback_view) arrives later, looks up the
-         row by checkout_request_id, and flips status to 'completed' or
-         'failed' based on the result.
-      3. is_unlocked (in listing_detail_view) only checks for status='completed'
-         rows — a 'pending' or 'failed' row does NOT unlock gated content.
-    """
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
@@ -151,7 +173,7 @@ class UnlockLedger(models.Model):
         choices=[('mpesa', 'M-Pesa'), ('ad_reward', 'Watched Ad')],
         default='mpesa',
     )
-    payment_reference = models.CharField(max_length=100, blank=True)  # M-Pesa receipt number, filled in on success
+    payment_reference = models.CharField(max_length=100, blank=True)
     checkout_request_id = models.CharField(max_length=100, blank=True, db_index=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     failure_reason = models.CharField(max_length=255, blank=True)
@@ -166,17 +188,6 @@ class UnlockLedger(models.Model):
 
 
 class LandlordVerification(models.Model):
-    """
-    Enterprise Landlord Hub — KYC verification for landlords/developers who
-    want the enterprise/commercial tier (bulk import, featured placement,
-    etc. — those come in later Phase 3 work; this model is just the
-    verification record they're built on top of).
-
-    One row per user. Resubmitting after a rejection resets status back to
-    'pending' rather than creating a new row, so there's always a single
-    current verification state per user, with rejection_reason preserved
-    as history until the next submission overwrites it.
-    """
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('verified', 'Verified'),
@@ -196,7 +207,7 @@ class LandlordVerification(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.username} — {self.get_status_display()}"
+        return f"{self.user.username} - {self.get_status_display()}"
 
 
 class ListingReport(models.Model):
@@ -214,6 +225,8 @@ class ListingReport(models.Model):
 
     def __str__(self):
         return f"{self.reporter.username} reported {self.listing.title} ({self.reason})"
+
+
 class TourRequest(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -233,4 +246,4 @@ class TourRequest(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.requester.username} -> {self.listing.title} ({self.status})"    
+        return f"{self.requester.username} -> {self.listing.title} ({self.status})"
