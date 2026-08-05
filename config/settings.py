@@ -118,6 +118,7 @@ MPESA_CALLBACK_BASE_URL = os.environ.get('MPESA_CALLBACK_BASE_URL', '')
 # 'CustomerBuyGoodsOnline' only once on production credentials for your
 # actual Till number (see the warning in apps/listings/mpesa.py).
 MPESA_TRANSACTION_TYPE = os.environ.get('MPESA_TRANSACTION_TYPE', 'CustomerPayBillOnline')
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID')
 
 CSRF_TRUSTED_ORIGINS = ['http://localhost:5173']
 REST_FRAMEWORK = {

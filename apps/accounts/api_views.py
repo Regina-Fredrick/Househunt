@@ -79,3 +79,38 @@ def register_view(request):
         {'detail': 'Registration successful. Check your email to verify your account.'},
         status=status.HTTP_201_CREATED,
     ) 
+    from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def google_login_view(request):
+    token = request.data.get('credential')
+    if not token:
+        return Response({'detail': 'Missing credential.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            token, google_requests.Request(), settings.GOOGLE_OAUTH_CLIENT_ID
+        )
+    except ValueError:
+        return Response({'detail': 'Invalid Google token.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    email = idinfo.get('email')
+    if not email:
+        return Response({'detail': 'Google account has no email.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user, created = User.objects.get_or_create(
+        email=email,
+        defaults={
+            'username': email.split('@')[0],
+            'is_active': True,
+        },
+    )
+    if created:
+        user.set_unusable_password()
+        user.save()
+
+    login(request, user)
+    return Response(UserSerializer(user).data)
