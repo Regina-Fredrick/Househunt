@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiGet, apiPost } from '../utils/api';
 import RequestTourModal from './RequestTourModal';
+import ListingMap from './ListingMap';
 export default function DetailPage() {
   const { id } = useParams();
   const [listing, setListing] = useState(null);
@@ -113,9 +114,10 @@ export default function DetailPage() {
         <div style={{ marginTop: 20 }}>
           <p><strong>Owner:</strong> {listing.owner_username}</p>
           <p><strong>Phone:</strong> {listing.owner_phone}</p>
+          {listing.street_address && <p><strong>Address:</strong> {listing.street_address}</p>}
+          <ListingMap latitude={listing.latitude} longitude={listing.longitude} title={listing.title} />
         </div>
       )}
-
       {!showTourForm && !tourRequested && (
         <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => setShowTourForm(true)}>
           Request a Tour
