@@ -8,6 +8,7 @@ listing. Unlike the CSS-blur approach in Phase 1/2, an unauthorized user's
 browser never receives this data in the first place — there's nothing to
 "unblur" via dev tools.
 """
+from decimal import Decimal
 from rest_framework import serializers
 from .models import Listing, ListingImage, Neighborhood, UnlockLedger, TourRequest
 
@@ -61,6 +62,7 @@ class ListingDetailSerializer(serializers.ModelSerializer):
     street_address = serializers.SerializerMethodField()
     latitude = serializers.SerializerMethodField()
     longitude = serializers.SerializerMethodField()
+    similar_listings = serializers.SerializerMethodField()
 
     class Meta:
         model = Listing
@@ -68,9 +70,24 @@ class ListingDetailSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'price', 'property_type', 'listing_type',
             'bedrooms', 'bathrooms', 'neighborhood', 'owner_username', 'owner_phone',
             'views_count', 'created_at', 'images', 'is_unlocked', 'pending_unlock',
-            'street_address', 'latitude', 'longitude',
+            'street_address', 'latitude', 'longitude', 'similar_listings',
         ]
 
+    def get_similar_listings(self, obj):
+        from django.db.models import Q
+        request = self.context.get('request')
+        price_min = obj.price * Decimal('0.7')
+        price_max = obj.price * Decimal('1.3')
+
+        similar = Listing.objects.filter(
+            Q(neighborhood_id=obj.neighborhood_id) | Q(property_type=obj.property_type)
+        ).filter(
+            status='approved',
+            price__gte=price_min,
+            price__lte=price_max,
+        ).exclude(pk=obj.pk).select_related('neighborhood').prefetch_related('images')[:4]
+
+        return ListingCardSerializer(similar, many=True, context={'request': request}).data
     def _is_unlocked(self, obj):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:

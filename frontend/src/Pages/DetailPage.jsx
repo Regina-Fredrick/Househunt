@@ -128,7 +128,7 @@ export default function DetailPage() {
         </div>
       )}
 
-      {showTourForm && (
+{showTourForm && (
         <RequestTourModal
           listingId={listing.id}
           onClose={() => setShowTourForm(false)}
@@ -137,6 +137,28 @@ export default function DetailPage() {
             setTourRequested(true);
           }}
         />
+      )}
+
+      {listing.similar_listings && listing.similar_listings.length > 0 && (
+        <div style={{ marginTop: 40 }}>
+          <h4 style={{ marginBottom: 16 }}>Similar Listings</h4>
+          <div className="grid">
+            {listing.similar_listings.map((s) => (
+              <Link key={s.id} to={`/listings/${s.id}`} className="card">
+                {s.hero_image && (
+                  <img src={s.hero_image} alt={s.title} className="card-img" />
+                )}
+                <div className="card-body">
+                  <h5 style={{ fontSize: '0.95rem', margin: '0 0 6px' }}>{s.title}</h5>
+                  <p className="price-tag">KES {s.price}</p>
+                  <p className="muted" style={{ fontSize: '0.85rem', margin: '6px 0 0' }}>
+                    {s.neighborhood?.name}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
