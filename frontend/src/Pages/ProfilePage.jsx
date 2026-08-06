@@ -51,22 +51,28 @@ export default function ProfilePage({ user, onUpdate }) {
     <div style={{ maxWidth: 400 }}>
       <h2>My Profile</h2>
 
-      {error && <div style={{ background: '#FDECEE', color: '#E05263', padding: 12, borderRadius: 8, marginBottom: 16 }}>{error}</div>}
-      {success && <div style={{ background: '#E6FBF8', color: '#1AA89A', padding: 12, borderRadius: 8, marginBottom: 16 }}>{success}</div>}
-
-      <label>Username</label>
-      <input value={user.username} disabled style={{ background: '#F8F9FB' }} />
-
-      <label>Role</label>
-      <input value={user.role} disabled style={{ background: '#F8F9FB' }} />
+      {error && <div className="alert alert-error">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit}>
+        {/* Username/Role were previously OUTSIDE the <form> tag — theme.css
+            only styles `form label`/`form input`, so they were falling back
+            to unstyled inline defaults. Moved inside to inherit the same
+            block layout, width, and spacing as Email/Phone below. Still
+            read-only via `disabled`; nothing about form submission changes
+            since handleSubmit only sends email/phone_number regardless. */}
+        <label>Username</label>
+        <input value={user.username} disabled />
+
+        <label>Role</label>
+        <input value={user.role} disabled />
+
         <label>Email</label>
         <input name="email" type="email" value={form.email} onChange={handleChange} />
 
         <label>Phone Number</label>
         <input name="phone_number" value={form.phone_number} onChange={handleChange} placeholder="0712345678" />
-        <p className="muted" style={{ fontSize: '0.85rem', marginTop: -8 }}>
+        <p className="muted" style={{ fontSize: '0.95rem', marginTop: 4 }}>
           Used for M-Pesa unlock payments and WhatsApp contact on your listings.
         </p>
 

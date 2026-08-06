@@ -90,7 +90,7 @@ export default function DetailPage() {
       {!listing.is_unlocked && (
         <div className="lock-box">
           <strong>This listing is locked.</strong>
-          <p style={{ margin: '8px 0 0' }}>Unlock full photos and contact details for KES 500.</p>
+          <p style={{ margin: '8px 0 0' }}>Unlock full photos and contact details for KES 300.</p>
 
           {unlockError && (
             <p style={{ color: '#E05263', marginTop: 8 }}>{unlockError}</p>
@@ -105,7 +105,7 @@ export default function DetailPage() {
             onClick={handleUnlock}
             disabled={unlocking}
           >
-            {unlocking ? 'Waiting for payment...' : 'Unlock for KES 500'}
+            {unlocking ? 'Waiting for payment...' : 'Unlock for KES 300'}
           </button>
         </div>
       )}

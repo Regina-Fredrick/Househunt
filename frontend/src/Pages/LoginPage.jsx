@@ -1,14 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiPost } from '../utils/api';
 
+const GOOGLE_CLIENT_ID = '558997406922-lk1s69k87v1le0p5vq9hdpjk93h5t9pd.apps.googleusercontent.com';
 export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  useEffect(() => {
+    function initGoogle() {
+      if (!window.google) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          try {
+            const user = await apiPost('/api/auth/google-login/', { credential: response.credential });
+            onLogin(user);
+            navigate('/mine');
+          } catch (err) {
+            setError(err.message);
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(
+        document.getElementById('googleSignInDiv'),
+        { theme: 'outline', size: 'large' }
+      );
+    }
 
+    if (window.google) {
+      initGoogle();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google) {
+          clearInterval(interval);
+          initGoogle();
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, []);
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -45,10 +78,14 @@ export default function LoginPage({ onLogin }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button type="submit" className="btn btn-primary" style={{ marginTop: 16 }} disabled={loading}>
+       <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
+
+      <div style={{ marginTop: 16 }}>
+        <div id="googleSignInDiv"></div>
+      </div>
     </div>
   );
 }

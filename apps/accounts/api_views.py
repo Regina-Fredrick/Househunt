@@ -3,8 +3,12 @@ from django.middleware.csrf import get_token
 from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from .models import User
 
 from .api_serializers import UserSerializer, RegisterSerializer
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
@@ -79,9 +83,7 @@ def register_view(request):
         {'detail': 'Registration successful. Check your email to verify your account.'},
         status=status.HTTP_201_CREATED,
     ) 
-    from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-
+   
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])

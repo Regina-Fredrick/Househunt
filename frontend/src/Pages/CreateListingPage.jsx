@@ -2,6 +2,21 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiGet, apiPost, getCsrfToken } from '../utils/api';
 
+async function fetchAllNeighborhoods() {
+  // Same fix as BrowsePage.jsx: DRF's `next` link is an absolute URL,
+  // which bypasses the Vite dev proxy and fails cross-origin if fetched
+  // directly — strip the scheme+host so every page stays same-origin.
+  let url = '/api/listings/neighborhoods/';
+  let all = [];
+  while (url) {
+    const res = await fetch(url);
+    const data = await res.json();
+    all = all.concat(data.results || []);
+    url = data.next ? data.next.replace(/^https?:\/\/[^/]+/, '') : null;
+  }
+  return all;
+}
+
 export default function CreateListingPage() {
   const [neighborhoods, setNeighborhoods] = useState([]);
   const [form, setForm] = useState({
@@ -16,9 +31,9 @@ export default function CreateListingPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiGet('/api/listings/neighborhoods/').then((data) => {
-      setNeighborhoods(data.results || data);
-    });
+    fetchAllNeighborhoods()
+      .then(setNeighborhoods)
+      .catch((err) => console.error('Failed to load neighborhoods', err));
   }, []);
 
   function handleChange(e) {
@@ -80,7 +95,7 @@ export default function CreateListingPage() {
           Upload 1-5 photos below.
         </p>
 
-        {error && <div style={{ background: '#FDECEE', color: '#E05263', padding: 12, borderRadius: 8, marginBottom: 16 }}>{error}</div>}
+        {error && <div className="alert alert-error">{error}</div>}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
           {images.map((img) => (
@@ -104,7 +119,7 @@ export default function CreateListingPage() {
   return (
     <div style={{ maxWidth: 500 }}>
       <h2>New Listing</h2>
-      {error && <div style={{ background: '#FDECEE', color: '#E05263', padding: 12, borderRadius: 8, marginBottom: 16 }}>{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
       <form onSubmit={handleSubmit}>
         <label>Title</label>
         <input name="title" value={form.title} onChange={handleChange} required />
