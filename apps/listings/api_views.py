@@ -81,8 +81,17 @@ class CreateListingAPIView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         listing = serializer.save(owner=request.user, status='pending')
-        return Response(MyListingSerializer(listing, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
+        if listing.is_commercial_tier():
+            verification = getattr(request.user, 'landlord_verification', None)
+            if not verification or verification.status != 'verified':
+                listing.delete()
+                return Response(
+                    {'detail': 'This listing describes a multi-unit property or development. Please complete landlord verification (KYC) before posting commercial listings.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        return Response(MyListingSerializer(listing, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])

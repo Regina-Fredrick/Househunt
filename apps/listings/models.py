@@ -102,6 +102,11 @@ class Listing(models.Model):
                 )
 
         self.flagged_reason = ' | '.join(reasons)
+    def is_commercial_tier(self):
+        if self.property_type in self.SINGLE_UNIT_TYPES:
+            desc_lower = (self.description or '').lower()
+            return any(phrase in desc_lower for phrase in self.COMPLEX_PHRASES)
+        return self.property_type == 'commercial'
 
     def __str__(self):
         return self.title
