@@ -67,6 +67,10 @@ export default function DetailPage() {
       <h2>{listing.title}</h2>
       <p className="muted">
         {listing.neighborhood?.name} &middot; {listing.views_count} views
+        {' \u00b7 '}
+        <a href={`/api/listings/neighborhoods/${listing.neighborhood?.id}/report/`} target="_blank" rel="noreferrer">
+          Get Neighborhood Report (PDF)
+        </a>
       </p>
 
       {listing.images && listing.images.length > 0 && (

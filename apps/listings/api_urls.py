@@ -32,4 +32,5 @@ urlpatterns = [
     path('tours/mine/', api_views.MyTourRequestsAPIView.as_view(), name='api_my_tours'),
     path('tours/incoming/', api_views.IncomingTourRequestsAPIView.as_view(), name='api_incoming_tours'),
     path('tours/<int:pk>/status/', api_views.update_tour_request_status_api_view, name='api_tour_status'),
+    path('neighborhoods/<int:neighborhood_id>/report/', api_views.neighborhood_report_api_view, name='api_neighborhood_report'),
 ]
