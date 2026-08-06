@@ -132,7 +132,14 @@ class NeighborhoodAdmin(admin.ModelAdmin):
     list_display = ('name', 'is_active')
     search_fields = ('name',)
 
-
+def revoke_unlock(modeladmin, request, queryset):
+    updated = queryset.filter(status='completed').update(status='refunded')
+    modeladmin.message_user(
+        request,
+        f'{updated} unlock(s) revoked. Remember to manually process the M-Pesa refund '
+        f'in your business account, since automated reversal requires separate B2C API access.'
+    )
+revoke_unlock.short_description = 'Revoke access (mark as refunded)'
 @admin.register(UnlockLedger)
 class UnlockLedgerAdmin(admin.ModelAdmin):
     # Updated for Phase 2: status/checkout_request_id/completed_at/
@@ -142,7 +149,7 @@ class UnlockLedgerAdmin(admin.ModelAdmin):
     list_filter = ('status', 'unlocked_at')
     search_fields = ('user__username', 'listing__title', 'payment_reference', 'checkout_request_id')
     readonly_fields = ('unlocked_at', 'completed_at', 'checkout_request_id')
-
+    actions = [revoke_unlock]
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user', 'listing')
 
