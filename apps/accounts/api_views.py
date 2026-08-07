@@ -3,6 +3,7 @@ from django.middleware.csrf import get_token
 from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 from .models import User
 
 from .api_serializers import UserSerializer, RegisterSerializer
@@ -116,3 +117,17 @@ def google_login_view(request):
 
     login(request, user)
     return Response(UserSerializer(user).data)
+   
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def landlord_api_key_view(request):
+    verification = getattr(request.user, 'landlord_verification', None)
+    if not verification or verification.status != 'verified':
+        return Response(
+            {'detail': 'You must be a verified landlord to access bulk import.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    token, _ = Token.objects.get_or_create(user=request.user)
+    return Response({'api_key': token.key})

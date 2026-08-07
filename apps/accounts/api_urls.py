@@ -8,4 +8,5 @@ urlpatterns = [
     path('me/', api_views.current_user_view, name='api_current_user'),
     path('register/', api_views.register_view, name='api_register'),
     path('google-login/', api_views.google_login_view, name='api_google_login'),
+    path('landlord-api-key/', api_views.landlord_api_key_view, name='api_landlord_key'),
 ]

@@ -422,3 +422,51 @@ def neighborhood_pricing_trends_view(request, neighborhood_id):
         'by_type': by_type,
         'monthly_trend': monthly_formatted,
     })
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def bulk_import_listings_api_view(request):
+    import csv
+    import io
+
+    verification = getattr(request.user, 'landlord_verification', None)
+    if not verification or verification.status != 'verified':
+        return Response(
+            {'detail': 'You must be a verified landlord to use bulk import.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    csv_file = request.FILES.get('file')
+    if not csv_file:
+        return Response({'detail': 'No file uploaded.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    decoded = csv_file.read().decode('utf-8')
+    reader = csv.DictReader(io.StringIO(decoded))
+
+    created = []
+    errors = []
+
+    for i, row in enumerate(reader, start=2):
+        row = dict(row)
+        neighborhood_input = row.get('neighborhood', '').strip()
+
+        if neighborhood_input.isdigit():
+            row['neighborhood'] = int(neighborhood_input)
+        else:
+            match = Neighborhood.objects.filter(name__iexact=neighborhood_input).first()
+            if match:
+                row['neighborhood'] = match.id
+            else:
+                errors.append({'row': i, 'errors': {'neighborhood': [f'Unknown neighborhood: "{neighborhood_input}"']}})
+                continue
+
+        serializer = ListingCreateSerializer(data=row)
+        if serializer.is_valid():
+            listing = serializer.save(owner=request.user, status='pending')
+            created.append(listing.id)
+        else:
+            errors.append({'row': i, 'errors': serializer.errors})
+    return Response({
+        'created_count': len(created),
+        'created_ids': created,
+        'errors': errors,
+    }, status=status.HTTP_201_CREATED if created else status.HTTP_400_BAD_REQUEST)
