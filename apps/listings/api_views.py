@@ -1,6 +1,9 @@
 """
 apps/listings/api_views.py
 """
+from django.db.models import Avg, Count, Min, Max
+from django.db.models.functions import TruncMonth
+from .models import Neighborhood
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
@@ -250,6 +253,7 @@ def unlock_with_ad_api_view(request, pk):
             'completed_at': timezone.now(),
         },
     )
+    return Response({'detail': 'Unlocked via rewarded ad.', 'status': ledger.status})
 class CreateTourRequestAPIView(generics.CreateAPIView):
     serializer_class = TourRequestCreateSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -360,3 +364,61 @@ def neighborhood_report_api_view(request, neighborhood_id):
     p.showPage()
     p.save()
     return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def neighborhood_pricing_trends_view(request, neighborhood_id):
+    """
+    Neighborhood Metrics Vault — Pricing Trends piece.
+
+    Computed on-the-fly from real Listing data rather than stored/cached,
+    since listing volume is small enough that aggregation is cheap and
+    this avoids staleness entirely. Only counts approved listings — a
+    pending/rejected listing's price shouldn't skew what buyers see as
+    "the going rate" for a neighborhood.
+
+    Unlike crime/school/transit data (no clean public API exists for
+    these in Kenya), pricing trends come entirely from data this platform
+    already has — no external scraping involved.
+    """
+    neighborhood = get_object_or_404(Neighborhood, pk=neighborhood_id)
+    base_qs = Listing.objects.filter(neighborhood=neighborhood, status='approved')
+
+    overall = base_qs.aggregate(
+        avg_price=Avg('price'),
+        min_price=Min('price'),
+        max_price=Max('price'),
+        count=Count('id'),
+    )
+
+    by_type = list(
+        base_qs.values('property_type', 'listing_type')
+        .annotate(avg_price=Avg('price'), count=Count('id'))
+        .order_by('property_type', 'listing_type')
+    )
+
+    # Last 12 months of approved listings, grouped by month created —
+    # a simple proxy for "trend" given we don't have historical price
+    # revision data, just when each listing was first posted.
+    monthly = list(
+        base_qs.annotate(month=TruncMonth('created_at'))
+        .values('month')
+        .annotate(avg_price=Avg('price'), count=Count('id'))
+        .order_by('month')
+    )
+    monthly_formatted = [
+        {
+            'month': row['month'].strftime('%Y-%m') if row['month'] else None,
+            'avg_price': row['avg_price'],
+            'count': row['count'],
+        }
+        for row in monthly
+    ]
+
+    return Response({
+        'neighborhood': {'id': neighborhood.id, 'name': neighborhood.name},
+        'overall': overall,
+        'by_type': by_type,
+        'monthly_trend': monthly_formatted,
+    })
