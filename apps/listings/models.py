@@ -56,6 +56,11 @@ class Listing(models.Model):
     rejection_reason = models.TextField(blank=True)
     flagged_reason = models.TextField(blank=True)
     report_count = models.PositiveIntegerField(default=0)
+    # Paid Premium Ad Slot Toggles — featuring a listing prominently in
+    # browse results for a fixed duration. See FeaturedListingPayment
+    # below for the payment that sets these.
+    is_featured = models.BooleanField(default=False)
+    featured_until = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         self._run_fraud_checks()
@@ -253,3 +258,37 @@ class TourRequest(models.Model):
 
     def __str__(self):
         return f"{self.requester.username} -> {self.listing.title} ({self.status})"
+
+
+class FeaturedListingPayment(models.Model):
+    """
+    Paid Premium Ad Slot Toggles — a landlord/agent pays to feature their
+    OWN listing prominently in browse results, for a fixed duration.
+
+    Deliberately kept SEPARATE from UnlockLedger rather than reusing it,
+    even though the pending/completed/failed + checkout_request_id shape
+    is identical. Reason: mpesa_callback_view looks up payments by
+    checkout_request_id against UnlockLedger specifically — mixing a
+    different payment purpose into that same table/callback risks
+    breaking the already-tested paywall flow. This gets its own callback
+    endpoint instead (mpesa_featured_callback_view in views.py), while
+    still reusing the same mpesa.stk_push() helper function underneath.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='featured_payments')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='featured_payments')
+    amount_paid = models.DecimalField(max_digits=8, decimal_places=2, default=1000)
+    payment_reference = models.CharField(max_length=100, blank=True)
+    checkout_request_id = models.CharField(max_length=100, blank=True, db_index=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    failure_reason = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} feature payment for {self.listing.title} ({self.status})"

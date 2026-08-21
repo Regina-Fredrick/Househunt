@@ -25,6 +25,8 @@ from .filters import ListingFilter
 from . import mpesa
 
 logger = logging.getLogger(__name__)
+from .models import FeaturedListingPayment
+
 
 
 class NeighborhoodListAPIView(generics.ListAPIView):
@@ -422,51 +424,82 @@ def neighborhood_pricing_trends_view(request, neighborhood_id):
         'by_type': by_type,
         'monthly_trend': monthly_formatted,
     })
+
+
+# Add these to apps/listings/api_views.py (works alongside your existing
+# unlock_listing_api_view / mpesa_callback_view — separate code path,
+# doesn't touch either of them).
+#
+# Additional imports needed at the top, if not already present:
+#   import json
+#   from django.http import JsonResponse
+#   from django.views.decorators.csrf import csrf_exempt
+#   from django.views.decorators.http import require_POST
+#   from .models import FeaturedListingPayment
+
+FEATURE_PRICE = 1000  # KES, flat fee — adjust as needed
+FEATURE_DURATION_DAYS = 7
+
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
-def bulk_import_listings_api_view(request):
-    import csv
-    import io
+def feature_listing_api_view(request, pk):
+    """
+    Owner pays to feature their own listing. Same phone-number
+    normalization and STK Push pattern as unlock_listing_api_view, but
+    creates a FeaturedListingPayment instead of an UnlockLedger row, and
+    points Daraja at the SEPARATE featured-payment callback URL.
+    """
+    listing = get_object_or_404(Listing, pk=pk, owner=request.user, status='approved')
 
-    verification = getattr(request.user, 'landlord_verification', None)
-    if not verification or verification.status != 'verified':
+    if listing.is_featured and listing.featured_until and listing.featured_until > timezone.now():
+        return Response({'detail': 'This listing is already featured.'}, status=status.HTTP_200_OK)
+
+    phone_number = (request.user.phone_number or '').strip()
+    if phone_number.startswith('0'):
+        phone_number = '254' + phone_number[1:]
+    elif phone_number.startswith('+'):
+        phone_number = phone_number[1:]
+
+    if not phone_number.startswith('254') or len(phone_number) != 12:
         return Response(
-            {'detail': 'You must be a verified landlord to use bulk import.'},
-            status=status.HTTP_403_FORBIDDEN,
+            {'detail': 'Add a valid M-Pesa phone number to your profile before featuring a listing.'},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
-    csv_file = request.FILES.get('file')
-    if not csv_file:
-        return Response({'detail': 'No file uploaded.'}, status=status.HTTP_400_BAD_REQUEST)
+    payment = FeaturedListingPayment.objects.create(
+        listing=listing, user=request.user,
+        amount_paid=FEATURE_PRICE, status='pending',
+    )
+    # Note the /featured/ suffix — this is what routes Daraja's callback
+    # to mpesa_featured_callback_view instead of the paywall's callback.
+    callback_url = f"{settings.MPESA_CALLBACK_BASE_URL}/listings/mpesa/callback/featured/"
 
-    decoded = csv_file.read().decode('utf-8')
-    reader = csv.DictReader(io.StringIO(decoded))
+    try:
+        response = mpesa.stk_push(
+            phone_number=phone_number,
+            amount=FEATURE_PRICE,
+            account_reference=str(listing.pk),
+            transaction_desc=f"Feature listing {listing.pk}",
+            callback_url=callback_url,
+        )
+        payment.checkout_request_id = response.get('CheckoutRequestID', '')
+        payment.save(update_fields=['checkout_request_id'])
+        return Response({'detail': 'Check your phone to complete the M-Pesa payment.'})
+    except mpesa.MpesaError as exc:
+        logger.error("Feature STK Push failed for listing %s, user %s: %s", listing.pk, request.user.pk, exc)
+        payment.status = 'failed'
+        payment.failure_reason = str(exc)[:255]
+        payment.save(update_fields=['status', 'failure_reason'])
+        return Response({'detail': 'Could not start the M-Pesa payment.'}, status=status.HTTP_502_BAD_GATEWAY)
 
-    created = []
-    errors = []
 
-    for i, row in enumerate(reader, start=2):
-        row = dict(row)
-        neighborhood_input = row.get('neighborhood', '').strip()
-
-        if neighborhood_input.isdigit():
-            row['neighborhood'] = int(neighborhood_input)
-        else:
-            match = Neighborhood.objects.filter(name__iexact=neighborhood_input).first()
-            if match:
-                row['neighborhood'] = match.id
-            else:
-                errors.append({'row': i, 'errors': {'neighborhood': [f'Unknown neighborhood: "{neighborhood_input}"']}})
-                continue
-
-        serializer = ListingCreateSerializer(data=row)
-        if serializer.is_valid():
-            listing = serializer.save(owner=request.user, status='pending')
-            created.append(listing.id)
-        else:
-            errors.append({'row': i, 'errors': serializer.errors})
-    return Response({
-        'created_count': len(created),
-        'created_ids': created,
-        'errors': errors,
-    }, status=status.HTTP_201_CREATED if created else status.HTTP_400_BAD_REQUEST)
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def feature_payment_status_api_view(request, pk):
+    payment = FeaturedListingPayment.objects.filter(
+        listing_id=pk, user=request.user
+    ).order_by('-created_at').first()
+    if not payment:
+        return Response({'status': 'none'})
+    return Response({'status': payment.status, 'failure_reason': payment.failure_reason})

@@ -34,5 +34,7 @@ urlpatterns = [
     path('tours/<int:pk>/status/', api_views.update_tour_request_status_api_view, name='api_tour_status'),
     path('neighborhoods/<int:neighborhood_id>/report/', api_views.neighborhood_report_api_view, name='api_neighborhood_report'),
     path('neighborhoods/<int:neighborhood_id>/pricing-trends/', api_views.neighborhood_pricing_trends_view, name='api_neighborhood_pricing_trends'),
-    path('bulk-import/', api_views.bulk_import_listings_api_view, name='api_bulk_import'),
-] 
+    path('<int:pk>/feature/', api_views.feature_listing_api_view, name='api_feature_listing'),
+    path('<int:pk>/feature/status/', api_views.feature_payment_status_api_view, name='api_feature_status'),
+]
+
